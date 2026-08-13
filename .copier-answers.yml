@@ -1,0 +1,14 @@
+# Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
+_commit: v1.4.1
+_src_path: https://github.com/trobz/trobz-python-template.git
+author_email: contact@trobz.com
+author_username: Trobz
+enable_docs_site: false
+enable_github_action: true
+package_name: odoo_logs
+project_description: prefiltered data from odoo logs
+project_name: odoo-logs
+project_type: cli
+publish_to_pypi: false
+repository_name: odoo-logs
+repository_namespace: trobz
