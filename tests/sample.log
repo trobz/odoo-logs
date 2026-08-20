@@ -1,0 +1,57 @@
+2018-02-05 04:44:11,940 8464 DEBUG odoo9 openerp.addons.base.ir.ir_cron: 0.019s (mail.mail, process_email_queue)
+2018-02-09 07:19:06,128 27773 INFO odoo9 openerp.service.common: successful login from 'pnguyen' using database 'odoo9'
+2025-01-04 03:00:01,101 12345 ERROR odoo10 odoo.addons.base.ir.ir_cron: Call of self.env['ir.autovacuum'].power_on(*[]) failed in Job #1
+2025-02-06 01:14:59,952 607286 INFO odoo11 odoo.addons.base.ir.ir_cron: Starting job `Base: Auto-vacuum internal data`.
+2025-02-06 01:14:59,970 607286 INFO odoo11 odoo.addons.base.ir.ir_cron: Job `Base: Auto-vacuum internal data` done.
+2025-02-06 01:15:02,113 607286 ERROR odoo11 odoo.addons.base.ir.ir_cron: Call from cron Sales: Send pending emails for server action #963 failed in Job #35
+2025-02-05 09:35:23,588 4084645 INFO odoo11 odoo.addons.base.res.res_users: Login successful for db:odoo11 login:jdoe from 127.0.0.1
+2025-02-05 09:35:24,101 4084645 INFO ? odoo.addons.queue_job.jobrunner.runner: queue job runner ready for db odoo11
+2025-12-16 23:00:07,204 853078 DEBUG ? odoo.addons.queue_job.jobrunner.runner: master election lost: could not acquire master runner lock on odoo16, sleeping 5s and retrying
+2025-12-16 23:00:25,921 853077 DEBUG odoo16 odoo.addons.base.models.ir_cron: 0.006s (cron Notification: Send scheduled message notifications, server action 1328 with uid 1)
+2025-12-16 23:00:31,004 853077 ERROR odoo16 odoo.addons.base.models.ir_cron: Call from cron Notification: Send scheduled message notifications for server action #1328 failed in Job #12
+2025-12-16 23:00:47,886 1286978 INFO None odoo.addons.base.models.res_users: Login successful for db:odoo16 login:admin from n/a
+2026-01-09 04:00:12,177 991200 INFO odoo17 odoo.addons.base.models.ir_cron: Manually starting job `Vacuum temporary reports`.
+2026-01-09 04:00:12,300 991200 INFO odoo17 odoo.addons.base.models.ir_cron: Job done: `Vacuum temporary reports` (0.123s).
+2025-12-16 23:01:03,447 853077 DEBUG ? odoo.service.server: WorkerCron (853077) polling for jobs
+2025-12-16 23:01:11,882 853090 INFO ? odoo.service.server: Worker (853090) exiting. request_count: 8192, registry count: 1.
+2026-06-08 08:39:34,869 1280523 INFO ? odoo.addons.queue_job.jobrunner: starting jobrunner thread (in threaded server)
+2026-06-08 08:39:34,869 1280523 INFO ? odoo.addons.queue_job.jobrunner.channels: Configured channel: root(C:1,Q:0,R:0,F:0)
+2026-06-08 08:39:39,929 1280523 INFO ? odoo.addons.queue_job.jobrunner.runner: asking Odoo to run job c5326dc9-96c0-4568-961e-2dfe3ecd323a on db odoo18
+2026-06-08 02:18:02,095 1715906 ERROR odoo18 odoo.modules.registry: Model x_bi_sql_view.demo_report has no table.
+2026-07-22 10:50:17,054 380367 INFO odoo18 odoo.addons.base.models.ir_cron: Job 'long cron' (76) started manually
+2026-07-22 10:53:16,561 380367 INFO odoo18 odoo.addons.base.models.ir_cron: Job 'long cron' (76) done in 40.564s
+2026-07-22 10:53:16,562 380367 DEBUG odoo18 odoo.addons.base.models.ir_cron: Job 'long cron' (76) server action #12 with uid 1 executed in 40.564s
+2026-07-22 10:53:16,571 380367 DEBUG odoo18 odoo.addons.base.models.ir_cron: Job "Bob's cron" (77) server action #12 with uid 1 executed in 0.500s
+2026-07-22 10:53:16,581 380367 INFO odoo18 odoo.addons.base.models.ir_cron: Job 'long cron' (76) completed
+2026-07-22 10:54:01,100 380999 INFO odoo18 odoo.addons.base.models.ir_cron: Job 'long cron' (76) done in 10.000s
+2026-07-22 11:04:02,180 380367 ERROR odoo18 odoo.addons.base.models.ir_cron: Job 'long cron' (76) server action #12 failed
+2026-07-22 11:05:00,010 380367 ERROR odoo18 odoo.addons.base.models.ir_cron: Job 'long cron' (76) timed out
+2026-07-23 07:25:29,069 1496426 ERROR odoo18 odoo.http: Exception during request handling.
+Traceback (most recent call last):
+  File "/opt/odoo/18.0/odoo/addons/bus/websocket.py", line 929, in open_connection
+    socket = request.httprequest._HTTPRequest__environ['socket']
+KeyError: 'socket'
+2026-08-04 08:01:34,187 912337 INFO odoo18 odoo.addons.base.models.res_users: Login successful for db:odoo18 login:admin from 127.0.0.1
+2018-04-10 14:05:37,568 9374 DEBUG ? openerp.service.server: WorkerCron (9374) odoo9 time:314.591s mem: 1456484k -> 1459296k (diff: 2812k)
+2018-04-10 15:07:00,685 9374 DEBUG ? openerp.service.server: WorkerCron (9374) odoo9 time:2.386s mem: 1659524k -> 2657988k (diff: 15478k)
+2026-08-12 02:01:42,272 384363 INFO odoo18 odoo.service.server: Worker WorkerHTTP (384363) alive
+2026-08-13 01:58:36,578 1325751 ERROR odoo18 odoo.service.server: WorkerCron (384364) timeout after 3600s
+2026-08-13 02:14:07,913 1325751 ERROR odoo18 odoo.http: Exception during request handling.
+Traceback (most recent call last):
+  File "/opt/odoo/18.0/odoo/addons/bus/websocket.py", line 929, in open_connection
+    socket = request.httprequest._HTTPRequest__environ['socket']
+KeyError: 'socket'
+2025-04-02 10:14:17,303 1450736 INFO odoo11 werkzeug: 127.0.0.1 - - [02/Apr/2025 10:14:17] "POST /longpolling/poll HTTP/1.1" 200 -
+2025-12-16 23:00:16,319 1212680 INFO odoo16 werkzeug: 10.20.14.220 - - [16/Dec/2025 23:00:16] "HEAD /web/binary/company_logo HTTP/1.0" 200 - 4 0.006 0.025
+2026-08-13 10:16:06,461 28610 INFO odoo18 werkzeug: 127.0.0.1 - - [13/Aug/2026 10:16:06] "POST /web/dataset/call_kw/product.product/web_read HTTP/1.1" 200 - 131 0.152 0.177
+2026-08-13 10:16:06,677 28612 INFO odoo18 werkzeug: 127.0.0.1 - - [13/Aug/2026 10:16:06] "POST /web/dataset/call_kw/product.product/web_read HTTP/1.1" 200 - 10 0.012 0.086
+2026-08-13 10:28:15,188 245648 DEBUG odoo18 odoo.api: call change.password.wizard(23,).change_password_button()
+2026-08-13 10:28:15,199 245648 INFO odoo18 odoo.addons.base.models.res_users: Password change for 'admin' (#2) by 'admin' (#2) from 127.0.0.1
+2025-12-16 23:05:41,002 1212680 INFO odoo15 odoo.addons.base.models.res_users: Password change for 'jdoe' (#7) from 10.20.14.220
+2026-08-13 10:16:07,004 28610 INFO odoo18 werkzeug: 127.0.0.1 - - [13/Aug/2026 10:16:07] "GET /web/image/res.partner/3/avatar_128?unique=1773779145000 HTTP/1.1" 200 - 7 0.009 0.011
+2026-08-14 02:08:24,638 1446914 INFO odoo18 werkzeug: 127.0.0.1 - - [14/Aug/2026 02:08:24] "POST /web/login HTTP/1.1" 200 - 68 0.052 1.057
+2026-08-17 08:30:06,369 3471974 INFO odoo18 werkzeug: 127.0.0.1 - - [17/Aug/2026 08:30:06] "POST /web/login HTTP/1.1" 303 - 35 0.031 0.391
+2026-08-17 23:07:28,727 3919419 DEBUG odoo16 odoo.addons.queue_job.controllers.main: <Job 553d4994-0e77-414d-9998-acd2f80dd2d6, priority:10> done
+2026-08-17 23:07:28,727 3919419 DEBUG odoo16 odoo.addons.queue_job.controllers.main: <Job 553d4994-0e77-414d-9998-acd2f80dd2d6, priority:10> enqueue depends started
+2026-08-17 23:07:28,730 44811 DEBUG ? odoo.addons.queue_job.jobrunner.channels: job 553d4994-0e77-414d-9998-acd2f80dd2d6 marked done in channel root(C:1,Q:0,R:0,F:24)
+2026-08-17 23:07:28,733 3919419 INFO odoo16 werkzeug: 127.0.0.1 - - [17/Aug/2026 23:07:28] "GET /queue_job/runjob?db=odoo16&job_uuid=553d4994-0e77-414d-9998-acd2f80dd2d6 HTTP/1.1" 200 - 22 0.084 0.027
