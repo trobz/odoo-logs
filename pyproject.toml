@@ -1,6 +1,6 @@
 [project]
 name = "odoo-logs"
-version = "0.0.0"
+version = "0.1.0"
 description = "prefiltered data from odoo logs"
 authors = [{name = "Trobz", email = "contact@trobz.com"}]
 requires-python = ">=3.10"
