@@ -11,6 +11,12 @@ Cron failures and the 10.0/17.0 wordings are the exception: no corpus sampled
 has one, so those lines are rendered from the version's own `_logger` format
 string in `odoo/addons/base/*/ir_cron.py` and marked `odoo10` / `odoo17`.
 
+The three `ir_mail_server: send:` lines are likewise reconstructed rather than
+copied verbatim: they follow the shape of a real `smtp_debug` corpus (a
+monitoring ping, an activity-assignment notification, an invoice with a PDF
+attachment) but every name, address and body string is fabricated — the
+corpus carried real customer and employee data.
+
 Every command test consumes `logs`, so adding a command checks it against
 every delivery and adding a delivery checks it against every command.
 """

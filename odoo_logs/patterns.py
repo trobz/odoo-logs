@@ -39,6 +39,19 @@ ROUTE_ID_RE = re.compile(r"/\d+(?=/|$)")
 DURATION_RE = re.compile(r"(?:done in|executed in|time:)\s*(?P<duration>[\d.]+)s")
 ALT_DB_RE = re.compile(r"(?:on db|using database|for db:) '?(?P<alt_db>[^' ]+)'?")
 
+# Header lines inside a `mails` row's raw SMTP payload, which carries `\r\n`
+# as the literal two-character escapes smtplib's `repr()` produces, not real
+# newlines — `\\r\\n` here matches those four characters.
+#
+# A long header (an encoded-word Subject, say) is folded onto a continuation
+# line starting with a space or tab, RFC 5322-style; `MAIL_FOLD_RE` joins
+# those back into one line before the header regexes below ever see the text.
+MAIL_FOLD_RE = re.compile(r"\\r\\n[ \t]+")
+MAIL_FROM_RE = re.compile(r"(?:^|\\r\\n)From: (?P<value>.*?)(?=\\r\\n)")
+MAIL_TO_RE = re.compile(r"(?:^|\\r\\n)To: (?P<value>.*?)(?=\\r\\n)")
+MAIL_SUBJECT_RE = re.compile(r"(?:^|\\r\\n)Subject: (?P<value>.*?)(?=\\r\\n)")
+MAIL_MESSAGE_ID_RE = re.compile(r"(?:^|\\r\\n)Message-Id: <(?P<value>[^>]+)>")
+
 # Every queue_job run goes through this route, 10.0 through 19.0, so
 # werkzeug's access line carries a job's duration the way it carries a
 # request's. The uuid rides in the query string and is unique per run.
@@ -131,6 +144,16 @@ _SOURCES: dict[str, list[str]] = {
         rf"{HEAD}{ODOO}\.addons\.(?:connector|queue_job)\.controllers\.main: "
         rf"<Job (?P<job>[0-9a-f-]+), priority:(?P<priority>\d+)> (?P<event>.*?)\s*$",
     ],
+    # `smtp_debug` on a mail server makes `ir_mail_server.py` (identical
+    # 12.0-19.0) route every smtplib debug call through `_logger.debug`, so
+    # each SMTP send lands as one log line: `send: b'...'`, the payload
+    # `repr()`-escaped onto one line. Most sends are protocol chatter (EHLO,
+    # MAIL FROM:<x>, DATA); only the actual message carries a Subject header,
+    # which is what tells it apart from that surrounding noise.
+    "mails": [
+        rf"{HEAD}{ODOO}\.addons\.base\.(?:models\.)?ir_mail_server: "
+        rf"send: b(?P<quote>['\"])(?=.*\\r\\nSubject:)(?P<data>.*)(?P=quote)\s*$",
+    ],
     "workers": [
         # Worker WorkerHTTP (384363) alive
         rf"{HEAD}{ODOO}\.service\.server: Worker (?P<kind>Worker\w+) "
@@ -169,6 +192,7 @@ COLUMNS: dict[str, list[str]] = {
     "logins": ["time", "db", "user", "ip"],
     "passwords": ["time", "db", "user", "uid", "by", "ip", "event"],
     "jobs": ["time", "db", "job", "priority", "event"],
+    "mails": ["time", "db", "mail_from", "mail_to", "subject", "message_id"],
     "workers": ["time", "db", "kind", "worker", "event", "duration"],
     "calls": ["time", "db", "endpoint", "status", "queries", "total", "query_time"],
 }

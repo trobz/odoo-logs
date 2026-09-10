@@ -76,6 +76,45 @@ def test_crons_keeps_cron_id_when_the_version_logs_one(logs):
     assert by_job["Base: Auto-vacuum internal data"] is None
 
 
+def test_mails_reads_the_smtp_debug_payload(logs):
+    """`smtp_debug` makes Odoo log every SMTP send at DEBUG; only the DATA
+    payload carries a Subject header, so the surrounding EHLO/MAIL FROM/DATA
+    protocol chatter on the same logger never matches. Three payload shapes
+    from a real corpus: a monitoring ping, an activity notification, and an
+    invoice with a PDF attachment (multipart/mixed wrapping
+    multipart/alternative)."""
+    by_subject = {row["subject"]: row for row in rows("mails", logs)}
+
+    monitoring = by_subject["This is a test email from Trobz"]
+    assert monitoring["mail_from"] == '"trobz" <notifications@odoo18.example.com>'
+    assert monitoring["mail_to"] == "hourly-test@monitor.odoo18.example.com"
+    assert monitoring["message_id"] == "171234.1700000000.1-openerp-private@odoo18"
+    assert monitoring["db"] == "odoo18"
+
+    invoice = by_subject["Your invoice INV/2026/0042"]
+    assert invoice["mail_from"] == '"no-reply" <notifications@odoo18.example.com>'
+    assert invoice["mail_to"] == '"ACME Farm" <jdoe@example.com>'
+
+
+def test_mails_unfolds_a_subject_split_across_lines(logs):
+    """A long encoded-word Subject wraps onto a continuation line starting
+    with a space, RFC 5322-style; the header regexes only ever see one
+    line, so the fold must be undone before they run. It also decodes the
+    RFC 2047 `=?utf-8?q?...?=` word back to the character it names, without
+    touching the plain text around it."""
+    odoobot = '"OdooBot" <notifications@odoo18.example.com>'
+    found = next(row for row in rows("mails", logs) if row["mail_from"] == odoobot)
+
+    assert found["subject"] == '"task_report_2026-07-22.pdf: À faire" assigned to you'
+
+
+def test_mails_leaves_a_plain_subject_untouched(logs):
+    """No encoded word, nothing to decode."""
+    found = next(row for row in rows("mails", logs) if row["subject"] == "Your invoice INV/2026/0042")
+
+    assert found["mail_to"] == '"ACME Farm" <jdoe@example.com>'
+
+
 def test_logins_reads_every_logger_name(logs):
     """9.0/10.0 log it from `service.common`, 11.0 from `base.res.res_users`,
     13.0 on from `base.models.res_users`."""
