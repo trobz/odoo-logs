@@ -262,6 +262,18 @@ def logins(files: LOGS, limit: LIMIT = 0):
 
 
 @app.command()
+def mails(files: LOGS, limit: LIMIT = 0):
+    """Outgoing emails, read off the SMTP debug log.
+
+    Needs `smtp_debug` enabled on the mail server: Odoo then routes every
+    smtplib debug call through its own logger at DEBUG, one SMTP send per
+    line. Only the DATA payload carrying a Subject header matches — EHLO,
+    MAIL FROM:<x> and the rest of the SMTP chatter don't.
+    """
+    _emit("mails", files, limit)
+
+
+@app.command()
 def users(
     files: LOGS,
     limit: LIMIT = 0,
