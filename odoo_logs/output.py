@@ -8,6 +8,7 @@ from typing import Any
 
 from rich.console import Console
 from rich.table import Table
+from rich.text import Text
 
 FORMATS = ("text", "json", "csv")
 
@@ -56,7 +57,8 @@ class Writer:
         for h in headers:
             t.add_column(h, overflow="fold", no_wrap=h in (no_wrap or ()))
         for row in rows:
-            t.add_row(*row)
+            # A log line is data, not markup for Rich to parse.
+            t.add_row(*(Text(cell) for cell in row))
         Console(file=self._f).print(t)
 
     def json(self, data: Any):

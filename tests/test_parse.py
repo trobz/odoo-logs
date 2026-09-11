@@ -544,3 +544,21 @@ def test_recurring_failures_group_across_processes():
     assert len(same) == 1
     # A bare number carries meaning and is kept.
     assert "3600s" in same.pop()
+
+
+def test_table_cells_are_not_read_as_markup(tmp_path: Path):
+    """Rich reads `[sale.order]` as a style tag and `[/opt/odoo]` as a closing
+    one, so a message either lost text or took the command down at the print,
+    with the whole scan already spent."""
+    path = tmp_path / "out.txt"
+    data = [
+        {"type": "ValidationError", "error": "no stock for [furn_0001] Desk"},
+        {"type": "OSError", "error": "cannot read [/opt/odoo/addons] path"},
+    ]
+
+    with output.Writer(str(path), "text") as w:
+        w.rows(["type", "error"], data)
+
+    written = path.read_text()
+    assert "[furn_0001]" in written
+    assert "[/opt/odoo/addons]" in written
