@@ -15,6 +15,14 @@ from odoo_logs import patterns
 LOG_TIME = "%Y-%m-%d %H:%M:%S,%f"
 ERROR_LEVELS = ("ERROR", "CRITICAL")
 
+# Each --from/--to format with the unit it leaves open on its right.
+_BOUND_FMTS = (
+    (LOG_TIME, None),
+    ("%Y-%m-%d %H:%M:%S", "second"),
+    ("%Y-%m-%d %H:%M", "minute"),
+    ("%Y-%m-%d", "day"),
+)
+
 AGO_RE = re.compile(r"^(\d+)\s+(minute|hour|day|week|month|year)s?\s+ago$")
 SPAN_RE = re.compile(r"^(this|last)\s+(week|month|year)$")
 _DELTAS = {"minute": "minutes", "hour": "hours", "day": "days", "week": "weeks"}
@@ -31,19 +39,36 @@ def parse_time(raw: str) -> datetime:
     return datetime.strptime(raw, LOG_TIME)
 
 
-def parse_bound(raw: str | None) -> datetime | None:
-    """Accept a bare date or a full timestamp on --from / --to."""
+def parse_bound(raw: str | None, end: bool = False) -> datetime | None:
+    """Accept a bare date or a full timestamp on --from / --to.
+
+    --to is an inclusive upper bound, so `end` rounds up to the last instant
+    the written precision covers: `-t 2026-08-13` asks for the whole 13th.
+    """
     if not raw:
         return None
 
-    for fmt in (LOG_TIME, "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%d"):
+    for fmt, unit in _BOUND_FMTS:
         try:
-            return datetime.strptime(raw, fmt)
+            found = datetime.strptime(raw, fmt)
         except ValueError:
             continue
 
+        return _round_up(found, unit) if end and unit else found
+
     message = f"unrecognized date: {raw!r} (use YYYY-MM-DD[ HH:MM:SS])"
     raise ValueError(message)
+
+
+def _round_up(when: datetime, unit: str) -> datetime:
+    if unit == "day":
+        return _end_of(when)
+    if unit == "minute":
+        return when.replace(second=59, microsecond=999999)
+
+    # Odoo timestamps carry milliseconds; a bound written to the second has
+    # to cover them or it drops the very second it names.
+    return when.replace(microsecond=999999)
 
 
 def parse_period(raw: str, now: datetime | None = None) -> tuple[datetime, datetime]:

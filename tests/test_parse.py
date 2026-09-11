@@ -544,3 +544,56 @@ def test_recurring_failures_group_across_processes():
     assert len(same) == 1
     # A bare number carries meaning and is kept.
     assert "3600s" in same.pop()
+
+
+def test_table_cells_are_not_read_as_markup(tmp_path: Path):
+    """Rich reads `[sale.order]` as a style tag and `[/opt/odoo]` as a closing
+    one, so a message either lost text or took the command down at the print,
+    with the whole scan already spent."""
+    path = tmp_path / "out.txt"
+    data = [
+        {"type": "ValidationError", "error": "no stock for [furn_0001] Desk"},
+        {"type": "OSError", "error": "cannot read [/opt/odoo/addons] path"},
+    ]
+
+    with output.Writer(str(path), "text") as w:
+        w.rows(["type", "error"], data)
+
+    written = path.read_text()
+    assert "[furn_0001]" in written
+    assert "[/opt/odoo/addons]" in written
+
+
+def test_a_zero_second_request_is_still_timed():
+    """A 304 or a cache hit logs `0 0.000 0.000`, a real measurement; only a
+    pre-12.0 line, which times nothing at all, carries None."""
+    rows = [
+        {"endpoint": "/web/static/x.js", "total": 0.0},
+        {"endpoint": "/web/dataset/call_kw", "total": 0.25},
+        {"endpoint": "/web/login", "total": None},
+    ]
+
+    assert main._timed(rows) == rows[:2]
+
+
+@pytest.mark.parametrize(
+    "raw,expected",
+    [
+        ("2026-08-13", datetime(2026, 8, 13, 23, 59, 59, 999999)),
+        ("2026-08-13 01:58", datetime(2026, 8, 13, 1, 58, 59, 999999)),
+        ("2026-08-13 01:58:36", datetime(2026, 8, 13, 1, 58, 36, 999999)),
+        # Written to the millisecond, it means that instant and nothing more.
+        ("2026-08-13 01:58:36,578", datetime(2026, 8, 13, 1, 58, 36, 578000)),
+    ],
+)
+def test_an_upper_bound_covers_what_it_leaves_open(raw, expected):
+    assert parse.parse_bound(raw, end=True) == expected
+
+
+def test_one_day_is_askable_as_the_same_date_twice(logs):
+    """`-f X -t X` is how anyone asks for one day; it returned nothing."""
+    day = "2026-08-13"
+    found = rows("calls", logs, since=parse.parse_bound(day), until=parse.parse_bound(day, end=True))
+
+    assert found
+    assert {row["time"].date() for row in found} == {datetime(2026, 8, 13).date()}
