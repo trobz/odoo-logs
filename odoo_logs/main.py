@@ -171,6 +171,15 @@ def _dump(rows: list[dict[str, Any]], key: str) -> None:
     typer.echo(f"{len(rows)} entries extracted to {_verbose}", err=True)
 
 
+def _timed(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Requests that can be aggregated on duration.
+
+    Before 12.0 the access line stops at the status and times nothing, which
+    is None. A 0.000s request — a 304, a cache hit — is a real measurement.
+    """
+    return [row for row in rows if row["total"] is not None]
+
+
 def _emit(name: str, files: list[Path], limit: int) -> None:
     """Every event command is this: scan, cut, print the command's columns."""
     rows = _scan(name, files)
@@ -381,8 +390,7 @@ def jobs(
     _check_sort(sort, cols)
 
     rows = _scan("calls", files, keep=lambda row: row["endpoint"] == patterns.JOB_ROUTE)
-    # Before 12.0 the access line stops at the status, so it times nothing.
-    timed = [row for row in rows if row["total"]]
+    timed = _timed(rows)
     ranked = call_stats(timed, sort, aggregate)
 
     with _writer() as w:
@@ -499,8 +507,7 @@ def calls(
 
         return
 
-    # Requests from before 12.0 carry no timing; they cannot be aggregated.
-    timed = [row for row in rows if row["total"]]
+    timed = _timed(rows)
     ranked = [stat for stat in call_stats(timed, sort, aggregate) if stat["count"] >= min_count]
 
     with _writer() as w:

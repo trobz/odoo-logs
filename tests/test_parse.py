@@ -562,3 +562,15 @@ def test_table_cells_are_not_read_as_markup(tmp_path: Path):
     written = path.read_text()
     assert "[furn_0001]" in written
     assert "[/opt/odoo/addons]" in written
+
+
+def test_a_zero_second_request_is_still_timed():
+    """A 304 or a cache hit logs `0 0.000 0.000`, a real measurement; only a
+    pre-12.0 line, which times nothing at all, carries None."""
+    rows = [
+        {"endpoint": "/web/static/x.js", "total": 0.0},
+        {"endpoint": "/web/dataset/call_kw", "total": 0.25},
+        {"endpoint": "/web/login", "total": None},
+    ]
+
+    assert main._timed(rows) == rows[:2]
