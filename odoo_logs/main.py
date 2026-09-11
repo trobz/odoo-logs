@@ -114,7 +114,7 @@ def main(
     _bounded = bool(period or from_ or to)
 
     try:
-        _since, _until = parse.parse_bound(from_), parse.parse_bound(to)
+        _since, _until = parse.parse_bound(from_), parse.parse_bound(to, end=True)
         if period:
             start, end = parse.parse_period(period)
             _since, _until = _since or start, _until or end

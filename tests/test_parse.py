@@ -574,3 +574,26 @@ def test_a_zero_second_request_is_still_timed():
     ]
 
     assert main._timed(rows) == rows[:2]
+
+
+@pytest.mark.parametrize(
+    "raw,expected",
+    [
+        ("2026-08-13", datetime(2026, 8, 13, 23, 59, 59, 999999)),
+        ("2026-08-13 01:58", datetime(2026, 8, 13, 1, 58, 59, 999999)),
+        ("2026-08-13 01:58:36", datetime(2026, 8, 13, 1, 58, 36, 999999)),
+        # Written to the millisecond, it means that instant and nothing more.
+        ("2026-08-13 01:58:36,578", datetime(2026, 8, 13, 1, 58, 36, 578000)),
+    ],
+)
+def test_an_upper_bound_covers_what_it_leaves_open(raw, expected):
+    assert parse.parse_bound(raw, end=True) == expected
+
+
+def test_one_day_is_askable_as_the_same_date_twice(logs):
+    """`-f X -t X` is how anyone asks for one day; it returned nothing."""
+    day = "2026-08-13"
+    found = rows("calls", logs, since=parse.parse_bound(day), until=parse.parse_bound(day, end=True))
+
+    assert found
+    assert {row["time"].date() for row in found} == {datetime(2026, 8, 13).date()}
