@@ -84,7 +84,15 @@ def main(
             "--from/--to override their end of it.",
         ),
     ] = None,
-    database: Annotated[str | None, typer.Option("--database", "-d", help="Only entries for this database.")] = None,
+    database: Annotated[
+        str | None,
+        typer.Option(
+            "--database",
+            "-d",
+            help="Only entries for this database, plus lines whose db is unknown ('?' or 'None'), "
+            "which may belong to another database.",
+        ),
+    ] = None,
     verbose: Annotated[
         str | None,
         typer.Option(

@@ -352,7 +352,29 @@ def test_database_filter_matches_the_resolved_db(logs):
     # The jobrunner logs `?` as the db; the filter must see `odoo18` anyway.
     found = rows("jobs", logs, database="odoo18")
 
-    assert field(found, "job") == ["c5326dc9-96c0-4568-961e-2dfe3ecd323a"]
+    assert "c5326dc9-96c0-4568-961e-2dfe3ecd323a" in field(found, "job")
+    assert set(field(found, "db")) <= {"odoo18", *patterns.UNKNOWN_DBS}
+
+
+def test_database_filter_keeps_lines_with_no_database(logs):
+    """odoo.sh logs `?` before a session exists and `None` on /jsonrpc, so an
+    exact match dropped a branch's own static and RPC traffic."""
+    calls = rows("calls", logs, database="odoo18")
+    jobs = rows("jobs", logs, database="odoo18")
+
+    assert "None" in field(calls, "db")
+    assert "starting jobrunner thread (in threaded server)" in field(jobs, "event")
+    assert "odoo16" not in field(calls, "db") + field(jobs, "db")
+
+
+def test_jobrunner_url_names_the_database(logs):
+    # `exception in GET .../runjob?db=odoo18&job_uuid=...` logs `?` as the db.
+    def runjob_errors(**kw):
+        return [block for block in parse.blocks(logs, **kw) if "runjob" in block["message"]]
+
+    assert field(runjob_errors(), "db") == ["odoo18"]
+    assert runjob_errors(database="odoo18")
+    assert not runjob_errors(database="odoo16")
 
 
 def test_rotated_files_come_back_in_time_order(logs):
