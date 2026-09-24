@@ -6,7 +6,7 @@ Loggers and messages are renamed between Odoo versions (`base.ir.ir_cron` on
 than assuming a version.
 
 Every pattern here has a real log line behind it in `tests/samples/`, one file
-per version from 9.0 through 18.0; `test_every_pattern_has_a_line` enforces it,
+per version from 9.0 through 19.0; `test_every_pattern_has_a_line` enforces it,
 so a wording that goes dead fails rather than quietly matching nothing.
 """
 
@@ -36,9 +36,15 @@ UUID_RE = re.compile(r"\b[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}\b")
 # route's tail is just a filename (`/web/image/42/description/icon.png`), so
 # reading it as model+method is nonsense.
 CALL_KW_RE = re.compile(r"/call_(?:kw|button)/(?P<model>[^/]+)/(?P<method>[^/]+)/?$")
+# 19.0 appends the `#model.method` an RPC ran to its path. A client can send a
+# fragment of its own, which Odoo logs as-is, so it is only read on the routes
+# that run an RPC — elsewhere `/web/login#res.users.unlink` would show as a
+# call that never happened.
+RPC_ROUTE_RE = re.compile(r"^/(?:jsonrpc$|xmlrpc/)|/call_(?:kw|button)/")
+RPC_FRAGMENT_RE = re.compile(r"(?P<model>\w+(?:\.\w+)*)\.(?P<method>\w+)")
 # Record ids in a route would otherwise make one group per record.
 ROUTE_ID_RE = re.compile(r"/\d+(?=/|$)")
-DURATION_RE = re.compile(r"(?:done in|executed in|time:)\s*(?P<duration>[\d.]+)s")
+DURATION_RE = re.compile(r"(?:done in|executed in|time:)\s*(?P<duration>\d+(?:\.\d+)?)s")
 # `[?&]db=`: the jobrunner names the db only in the runjob URL it failed on.
 ALT_DB_RE = re.compile(
     r"(?:(?:on db|using database|for db:|ready for db|runner lock on) '?|[?&]db=)"
@@ -66,6 +72,13 @@ JOB_ROUTE = "/queue_job/runjob"
 # Source strings; compiled into PATTERNS below.
 _SOURCES: dict[str, list[str]] = {
     "crons": [
+        # 19.0: Job 'x' (2) fully done (#loop 1; done 0; remaining 0; duration 0.01s)
+        # Ahead of the 18.0 catch-all below, which would swallow the counters
+        # into the event and leave the duration unread.
+        rf"{HEAD}{ODOO}\.addons\.base\.models\.ir_cron: "
+        rf"Job ['\"](?P<cron>.*?)['\"] \((?P<cron_id>\d+)\) "
+        rf"(?P<event>fully done|partially done|failed) "
+        rf"\(#loop \d+; done \d+; remaining \d+; duration (?P<duration>\d+(?:\.\d+)?)s\)",
         # 18.0: Job 'long cron' (76) starting | done in 40.564s | completed
         # | timed out | server action #12 failed. `%r` on a name carrying an
         # apostrophe quotes it with `"` instead, so both quotes are accepted.
@@ -73,7 +86,7 @@ _SOURCES: dict[str, list[str]] = {
         rf"Job ['\"](?P<cron>.*?)['\"] \((?P<cron_id>\d+)\) (?P<event>.*?)\s*$",
         # 17.0 only: Job done: `Vacuum temporary reports` (0.123s).
         rf"{HEAD}{ODOO}\.addons\.base\.models\.ir_cron: "
-        rf"Job (?P<event>done): `(?P<cron>[^`]*)` \((?P<duration>[\d.]+)s\)",
+        rf"Job (?P<event>done): `(?P<cron>[^`]*)` \((?P<duration>\d+(?:\.\d+)?)s\)",
         # 11.0: Starting job `Cron job to update the Groups`.
         # 15.0-17.0 word the direct trigger `Manually starting job `x`.`, whose
         # `Job `x` done.` half matches below — without this it is a half record.
@@ -91,16 +104,17 @@ _SOURCES: dict[str, list[str]] = {
         rf"(?P<event>Call of .*failed) in Job #?(?P<cron_id>\d+)",
         # 16.0: 0.006s (cron Notification: Send ..., server action 1328 with uid 1)
         rf"{HEAD}{ODOO}\.addons\.base\.(?:models\.|ir\.)?ir_cron: "
-        rf"(?P<duration>[\d.]+)s \((?:cron )?(?P<cron>.*?), "
+        rf"(?P<duration>\d+(?:\.\d+)?)s \((?:cron )?(?P<cron>.*?), "
         rf"(?P<event>server action \d+ with uid \d+)\)",
         # 10.0: 5.352s (ir.autovacuum, power_on)
         rf"{HEAD}{ODOO}\.addons\.base\.ir\.ir_cron: "
-        rf"(?P<duration>[\d.]+)s \((?P<cron>[^,]+), (?P<event>[^)]+)\)",
+        rf"(?P<duration>\d+(?:\.\d+)?)s \((?P<cron>[^,]+), (?P<event>[^)]+)\)",
     ],
     "logins": [
-        # 16.0/18.0 use base.models.res_users, 11.0 uses base.res.res_users
+        # 16.0/18.0 use base.models.res_users, 11.0 uses base.res.res_users.
+        # 19.0 drops `db:X ` and leaves the database to the head.
         rf"{HEAD}{ODOO}\.addons\.base\.(?:models|res)\.res_users: "
-        rf"Login successful for db:(?P<alt_db>\S+) login:(?P<user>\S+) "
+        rf"Login successful for (?:db:(?P<alt_db>\S+) )?login:(?P<user>\S+) "
         rf"from (?P<ip>\S+)",
         # 10.0
         rf"{HEAD}{ODOO}\.service\.common: successful login from "
@@ -127,11 +141,13 @@ _SOURCES: dict[str, list[str]] = {
     ],
     # werkzeug's access line carries Odoo's perf_info suffix
     # (query_count query_time remaining_time) from 12.0 on — at INFO, so no
-    # special handler is needed. Older versions stop after the status.
+    # special handler is needed. Older versions stop after the status. 19.0
+    # appends the `#model.method` an RPC ran to the path, call_kw included;
+    # `_enrich` reads it, on RPC routes only.
     "calls": [
         rf"{HEAD}werkzeug: (?P<ip>\S+) - - \[[^\]]*\] "
         rf'"(?P<verb>[A-Z]+) (?P<route>\S+) [^"]*" (?P<status>\d+) \S+'
-        rf"(?: (?P<queries>\d+) (?P<query_time>[\d.]+) (?P<other_time>[\d.]+))?",
+        rf"(?: (?P<queries>\d+) (?P<query_time>\d+(?:\.\d+)?) (?P<other_time>\d+(?:\.\d+)?))?",
     ],
     # Not here: `queue_job.job`, the logger emoi reads. It only logs
     # enqueueing, on every version 10.0 through 19.0, so it says nothing about
