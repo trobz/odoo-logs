@@ -138,9 +138,9 @@ Nothing is filtered by default — the usual noise filter is
 **Version coverage.** Loggers and messages get renamed between versions
 (`base.ir.ir_cron` on 10.0/11.0, `base.models.ir_cron` after), so each command
 matches every known wording. Patterns are backed by real lines in
-`tests/sample.log`, captured from 9.0 through 18.0, and a test asserts every
-pattern matches one — a wording that goes dead fails rather than quietly
-returning nothing. The 10.0 and 17.0 cron wordings are the exception: no
+`tests/samples/<version>.log`, one file per version from 9.0 through 18.0,
+and a test asserts every pattern matches one — a wording that goes dead fails
+rather than quietly returning nothing. The 10.0 and 17.0 cron wordings are the exception: no
 corpus has one, so they are rendered from that version's own `_logger`
 format string.
 

@@ -1,0 +1,11 @@
+2025-12-16 23:00:07,204 853078 DEBUG ? odoo.addons.queue_job.jobrunner.runner: master election lost: could not acquire master runner lock on odoo16, sleeping 5s and retrying
+2025-12-16 23:00:25,921 853077 DEBUG odoo16 odoo.addons.base.models.ir_cron: 0.006s (cron Notification: Send scheduled message notifications, server action 1328 with uid 1)
+2025-12-16 23:00:31,004 853077 ERROR odoo16 odoo.addons.base.models.ir_cron: Call from cron Notification: Send scheduled message notifications for server action #1328 failed in Job #12
+2025-12-16 23:00:47,886 1286978 INFO None odoo.addons.base.models.res_users: Login successful for db:odoo16 login:admin from n/a
+2025-12-16 23:01:03,447 853077 DEBUG ? odoo.service.server: WorkerCron (853077) polling for jobs
+2025-12-16 23:01:11,882 853090 INFO ? odoo.service.server: Worker (853090) exiting. request_count: 8192, registry count: 1.
+2025-12-16 23:00:16,319 1212680 INFO odoo16 werkzeug: 10.20.14.220 - - [16/Dec/2025 23:00:16] "HEAD /web/binary/company_logo HTTP/1.0" 200 - 4 0.006 0.025
+2026-08-17 23:07:28,727 3919419 DEBUG odoo16 odoo.addons.queue_job.controllers.main: <Job 553d4994-0e77-414d-9998-acd2f80dd2d6, priority:10> done
+2026-08-17 23:07:28,727 3919419 DEBUG odoo16 odoo.addons.queue_job.controllers.main: <Job 553d4994-0e77-414d-9998-acd2f80dd2d6, priority:10> enqueue depends started
+2026-08-17 23:07:28,730 44811 DEBUG ? odoo.addons.queue_job.jobrunner.channels: job 553d4994-0e77-414d-9998-acd2f80dd2d6 marked done in channel root(C:1,Q:0,R:0,F:24)
+2026-08-17 23:07:28,733 3919419 INFO odoo16 werkzeug: 127.0.0.1 - - [17/Aug/2026 23:07:28] "GET /queue_job/runjob?db=odoo16&job_uuid=553d4994-0e77-414d-9998-acd2f80dd2d6 HTTP/1.1" 200 - 22 0.084 0.027
