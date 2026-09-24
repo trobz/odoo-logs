@@ -1,0 +1,2 @@
+2026-01-09 04:00:12,177 991200 INFO odoo17 odoo.addons.base.models.ir_cron: Manually starting job `Vacuum temporary reports`.
+2026-01-09 04:00:12,300 991200 INFO odoo17 odoo.addons.base.models.ir_cron: Job done: `Vacuum temporary reports` (0.123s).

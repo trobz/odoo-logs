@@ -5,8 +5,8 @@ Loggers and messages are renamed between Odoo versions (`base.ir.ir_cron` on
 `base.models.res_users` after), so each command matches an alternation rather
 than assuming a version.
 
-Every pattern here has a real log line behind it in `tests/sample.log`, drawn
-from 9.0 through 18.0 instances; `test_every_pattern_has_a_line` enforces it,
+Every pattern here has a real log line behind it in `tests/samples/`, one file
+per version from 9.0 through 20.0; `test_every_pattern_has_a_line` enforces it,
 so a wording that goes dead fails rather than quietly matching nothing.
 """
 
@@ -47,6 +47,13 @@ JOB_ROUTE = "/queue_job/runjob"
 # Source strings; compiled into PATTERNS below.
 _SOURCES: dict[str, list[str]] = {
     "crons": [
+        # 19.0: Job 'x' (2) fully done (#loop 1; done 0; remaining 0; duration 0.01s)
+        # Ahead of the 18.0 catch-all below, which would swallow the counters
+        # into the event and leave the duration unread.
+        rf"{HEAD}{ODOO}\.addons\.base\.models\.ir_cron: "
+        rf"Job ['\"](?P<cron>.*?)['\"] \((?P<cron_id>\d+)\) "
+        rf"(?P<event>fully done|partially done|failed) "
+        rf"\(#loop \d+; done \d+; remaining \d+; duration (?P<duration>[\d.]+)s\)",
         # 18.0: Job 'long cron' (76) starting | done in 40.564s | completed
         # | timed out | server action #12 failed. `%r` on a name carrying an
         # apostrophe quotes it with `"` instead, so both quotes are accepted.
@@ -79,9 +86,10 @@ _SOURCES: dict[str, list[str]] = {
         rf"(?P<duration>[\d.]+)s \((?P<cron>[^,]+), (?P<event>[^)]+)\)",
     ],
     "logins": [
-        # 16.0/18.0 use base.models.res_users, 11.0 uses base.res.res_users
+        # 16.0/18.0 use base.models.res_users, 11.0 uses base.res.res_users.
+        # 19.0 drops `db:X ` and leaves the database to the head.
         rf"{HEAD}{ODOO}\.addons\.base\.(?:models|res)\.res_users: "
-        rf"Login successful for db:(?P<alt_db>\S+) login:(?P<user>\S+) "
+        rf"Login successful for (?:db:(?P<alt_db>\S+) )?login:(?P<user>\S+) "
         rf"from (?P<ip>\S+)",
         # 10.0
         rf"{HEAD}{ODOO}\.service\.common: successful login from "
@@ -108,11 +116,21 @@ _SOURCES: dict[str, list[str]] = {
     ],
     # werkzeug's access line carries Odoo's perf_info suffix
     # (query_count query_time remaining_time) from 12.0 on — at INFO, so no
-    # special handler is needed. Older versions stop after the status.
+    # special handler is needed. Older versions stop after the status. 19.0
+    # appends the `#model.method` an RPC ran to the path, call_kw included.
     "calls": [
         rf"{HEAD}werkzeug: (?P<ip>\S+) - - \[[^\]]*\] "
-        rf'"(?P<verb>[A-Z]+) (?P<route>\S+) [^"]*" (?P<status>\d+) \S+'
+        rf'"(?P<verb>[A-Z]+) (?P<route>[^\s#]+)(?:#(?P<rpc>\S+))? [^"]*" (?P<status>\d+) \S+'
         rf"(?: (?P<queries>\d+) (?P<query_time>[\d.]+) (?P<other_time>[\d.]+))?",
+        # 20.0 serves HTTP itself and logs from odoo.http.server: the ident
+        # slot carries the session id (first 8 chars, `-` when none), the
+        # `#model.method` stays on the path, and the cursor mode (`ro`, `rw`,
+        # `ro->rw`, `-`) comes last. The body is a size, `stream` or `-`.
+        # The DEBUG `[REQ] `/`[RES] ` copies of the same request start with
+        # `[`, which the address can't, so a request is counted once.
+        rf"{HEAD}{ODOO}\.http\.server: (?P<ip>[^\s\[]\S*) (?P<session>\S+) - \[[^\]]*\] "
+        rf'"(?P<verb>[A-Z]+) (?P<route>[^\s#]+)(?:#(?P<rpc>\S+))? [^"]*" (?P<status>\d+) \S+ '
+        rf"(?P<queries>\d+) (?P<query_time>[\d.]+) (?P<other_time>[\d.]+) (?P<cursor>\S+)",
     ],
     # Not here: `queue_job.job`, the logger emoi reads. It only logs
     # enqueueing, on every version 10.0 through 19.0, so it says nothing about
@@ -149,6 +167,13 @@ _SOURCES: dict[str, list[str]] = {
         # Worker (15946) virtual memory limit (2048MB) reached
         rf"{HEAD}{ODOO}\.service\.server: Worker \((?P<worker>\d+)\) "
         rf"(?P<event>.*?)\s*$",
+        # 20.0 gives each worker class its own child logger and drops the pid
+        # from the message: the worker is the process logging, so the head's
+        # pid is the worker. Alive | Max request (3) reached. | Exiting cleanly…
+        rf"{HEAD}{ODOO}\.service\.server\.(?P<kind>Worker\w+): (?P<event>.*?)\s*$",
+        # 20.0, from the master: WorkerCron (563503) timeout after 120s
+        rf"{HEAD}{ODOO}\.service\.server\.PreforkServer: (?P<kind>Worker\w+) "
+        rf"\((?P<worker>\d+)\) (?P<event>.*?)\s*$",
     ],
 }
 
