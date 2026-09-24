@@ -1,0 +1,1 @@
+2025-01-04 03:00:01,101 12345 ERROR odoo10 odoo.addons.base.ir.ir_cron: Call of self.env['ir.autovacuum'].power_on(*[]) failed in Job #1

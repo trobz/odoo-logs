@@ -1,0 +1,6 @@
+2025-02-06 01:14:59,952 607286 INFO odoo11 odoo.addons.base.ir.ir_cron: Starting job `Base: Auto-vacuum internal data`.
+2025-02-06 01:14:59,970 607286 INFO odoo11 odoo.addons.base.ir.ir_cron: Job `Base: Auto-vacuum internal data` done.
+2025-02-06 01:15:02,113 607286 ERROR odoo11 odoo.addons.base.ir.ir_cron: Call from cron Sales: Send pending emails for server action #963 failed in Job #35
+2025-02-05 09:35:23,588 4084645 INFO odoo11 odoo.addons.base.res.res_users: Login successful for db:odoo11 login:jdoe from 127.0.0.1
+2025-02-05 09:35:24,101 4084645 INFO ? odoo.addons.queue_job.jobrunner.runner: queue job runner ready for db odoo11
+2025-04-02 10:14:17,303 1450736 INFO odoo11 werkzeug: 127.0.0.1 - - [02/Apr/2025 10:14:17] "POST /longpolling/poll HTTP/1.1" 200 -

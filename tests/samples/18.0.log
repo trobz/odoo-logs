@@ -1,0 +1,32 @@
+2026-06-08 08:39:34,869 1280523 INFO ? odoo.addons.queue_job.jobrunner: starting jobrunner thread (in threaded server)
+2026-06-08 08:39:34,869 1280523 INFO ? odoo.addons.queue_job.jobrunner.channels: Configured channel: root(C:1,Q:0,R:0,F:0)
+2026-06-08 08:39:39,929 1280523 INFO ? odoo.addons.queue_job.jobrunner.runner: asking Odoo to run job c5326dc9-96c0-4568-961e-2dfe3ecd323a on db odoo18
+2026-06-08 02:18:02,095 1715906 ERROR odoo18 odoo.modules.registry: Model x_bi_sql_view.demo_report has no table.
+2026-07-22 10:50:17,054 380367 INFO odoo18 odoo.addons.base.models.ir_cron: Job 'long cron' (76) started manually
+2026-07-22 10:53:16,561 380367 INFO odoo18 odoo.addons.base.models.ir_cron: Job 'long cron' (76) done in 40.564s
+2026-07-22 10:53:16,562 380367 DEBUG odoo18 odoo.addons.base.models.ir_cron: Job 'long cron' (76) server action #12 with uid 1 executed in 40.564s
+2026-07-22 10:53:16,571 380367 DEBUG odoo18 odoo.addons.base.models.ir_cron: Job "Bob's cron" (77) server action #12 with uid 1 executed in 0.500s
+2026-07-22 10:53:16,581 380367 INFO odoo18 odoo.addons.base.models.ir_cron: Job 'long cron' (76) completed
+2026-07-22 10:54:01,100 380999 INFO odoo18 odoo.addons.base.models.ir_cron: Job 'long cron' (76) done in 10.000s
+2026-07-22 11:04:02,180 380367 ERROR odoo18 odoo.addons.base.models.ir_cron: Job 'long cron' (76) server action #12 failed
+2026-07-22 11:05:00,010 380367 ERROR odoo18 odoo.addons.base.models.ir_cron: Job 'long cron' (76) timed out
+2026-07-23 07:25:29,069 1496426 ERROR odoo18 odoo.http: Exception during request handling.
+Traceback (most recent call last):
+  File "/opt/odoo/18.0/odoo/addons/bus/websocket.py", line 929, in open_connection
+    socket = request.httprequest._HTTPRequest__environ['socket']
+KeyError: 'socket'
+2026-08-04 08:01:34,187 912337 INFO odoo18 odoo.addons.base.models.res_users: Login successful for db:odoo18 login:admin from 127.0.0.1
+2026-08-12 02:01:42,272 384363 INFO odoo18 odoo.service.server: Worker WorkerHTTP (384363) alive
+2026-08-13 01:58:36,578 1325751 ERROR odoo18 odoo.service.server: WorkerCron (384364) timeout after 3600s
+2026-08-13 02:14:07,913 1325751 ERROR odoo18 odoo.http: Exception during request handling.
+Traceback (most recent call last):
+  File "/opt/odoo/18.0/odoo/addons/bus/websocket.py", line 929, in open_connection
+    socket = request.httprequest._HTTPRequest__environ['socket']
+KeyError: 'socket'
+2026-08-13 10:16:06,461 28610 INFO odoo18 werkzeug: 127.0.0.1 - - [13/Aug/2026 10:16:06] "POST /web/dataset/call_kw/product.product/web_read HTTP/1.1" 200 - 131 0.152 0.177
+2026-08-13 10:16:06,677 28612 INFO odoo18 werkzeug: 127.0.0.1 - - [13/Aug/2026 10:16:06] "POST /web/dataset/call_kw/product.product/web_read HTTP/1.1" 200 - 10 0.012 0.086
+2026-08-13 10:28:15,188 245648 DEBUG odoo18 odoo.api: call change.password.wizard(23,).change_password_button()
+2026-08-13 10:28:15,199 245648 INFO odoo18 odoo.addons.base.models.res_users: Password change for 'admin' (#2) by 'admin' (#2) from 127.0.0.1
+2026-08-13 10:16:07,004 28610 INFO odoo18 werkzeug: 127.0.0.1 - - [13/Aug/2026 10:16:07] "GET /web/image/res.partner/3/avatar_128?unique=1773779145000 HTTP/1.1" 200 - 7 0.009 0.011
+2026-08-14 02:08:24,638 1446914 INFO odoo18 werkzeug: 127.0.0.1 - - [14/Aug/2026 02:08:24] "POST /web/login HTTP/1.1" 200 - 68 0.052 1.057
+2026-08-17 08:30:06,369 3471974 INFO odoo18 werkzeug: 127.0.0.1 - - [17/Aug/2026 08:30:06] "POST /web/login HTTP/1.1" 303 - 35 0.031 0.391

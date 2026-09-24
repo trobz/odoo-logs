@@ -1,0 +1,4 @@
+2018-02-05 04:44:11,940 8464 DEBUG odoo9 openerp.addons.base.ir.ir_cron: 0.019s (mail.mail, process_email_queue)
+2018-02-09 07:19:06,128 27773 INFO odoo9 openerp.service.common: successful login from 'pnguyen' using database 'odoo9'
+2018-04-10 14:05:37,568 9374 DEBUG ? openerp.service.server: WorkerCron (9374) odoo9 time:314.591s mem: 1456484k -> 1459296k (diff: 2812k)
+2018-04-10 15:07:00,685 9374 DEBUG ? openerp.service.server: WorkerCron (9374) odoo9 time:2.386s mem: 1659524k -> 2657988k (diff: 15478k)
