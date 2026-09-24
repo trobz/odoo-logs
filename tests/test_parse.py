@@ -108,6 +108,16 @@ def test_mails_unfolds_a_subject_split_across_lines(logs):
     assert found["subject"] == '"task_report_2026-07-22.pdf: À faire" assigned to you'
 
 
+def test_mails_unescapes_repr_apostrophes(logs):
+    """The DATA payload is repr(bytes), so `'` rides as `\\'` in the log;
+    the fields must come out with real apostrophes (seen on an 18.0
+    instance: O'Brien, Bob's)."""
+    found = next(row for row in rows("mails", logs) if "O'Brien" in (row["subject"] or ""))
+
+    assert found["subject"] == "Confirmation for Sean O'Brien"
+    assert found["mail_to"] == '"Sean O\'Brien" <sean.obrien@example.com>'
+
+
 def test_mails_leaves_a_plain_subject_untouched(logs):
     """No encoded word, nothing to decode."""
     found = next(row for row in rows("mails", logs) if row["subject"] == "Your invoice INV/2026/0042")

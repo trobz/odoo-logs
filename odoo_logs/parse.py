@@ -141,11 +141,11 @@ def _enrich(row: dict[str, Any]) -> dict[str, Any]:
         row["job"] = found.group(0) if found else None
 
     if "data" in row:
-        unfolded = patterns.MAIL_FOLD_RE.sub(" ", row["data"])
-        row["mail_from"] = _search(patterns.MAIL_FROM_RE, unfolded, "value")
-        row["mail_to"] = _search(patterns.MAIL_TO_RE, unfolded, "value")
-        row["subject"] = _decode_subject(_search(patterns.MAIL_SUBJECT_RE, unfolded, "value"))
-        row["message_id"] = _search(patterns.MAIL_MESSAGE_ID_RE, unfolded, "value")
+        unfolded = patterns.MAIL_FOLD_RE.sub(" ", row.pop("data"))
+        row["mail_from"] = _unescape(_search(patterns.MAIL_FROM_RE, unfolded, "value"))
+        row["mail_to"] = _unescape(_search(patterns.MAIL_TO_RE, unfolded, "value"))
+        row["subject"] = _decode_subject(_unescape(_search(patterns.MAIL_SUBJECT_RE, unfolded, "value")))
+        row["message_id"] = _unescape(_search(patterns.MAIL_MESSAGE_ID_RE, unfolded, "value"))
 
     if "route" in row:
         row["model"], row["method"], row["endpoint"] = describe_route(row["route"])
@@ -203,6 +203,16 @@ def _decode_subject(subject: str | None) -> str | None:
         )
     except (ValueError, LookupError):
         return subject
+
+
+def _unescape(value: str | None) -> str | None:
+    """The DATA payload is `repr(bytes)`, so `'` rides as `\\'`. Undo quote
+    and backslash escapes only — `\\r`/`\\n` stay as-is: the fold regex and
+    header patterns still match on the two-character sequences."""
+    if not value:
+        return value
+
+    return re.sub(r"\\(['\"\\])", r"\1", value)
 
 
 def _search(regex, text: str, group: str) -> str | None:

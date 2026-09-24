@@ -151,7 +151,7 @@ _SOURCES: dict[str, list[str]] = {
     # MAIL FROM:<x>, DATA); only the actual message carries a Subject header,
     # which is what tells it apart from that surrounding noise.
     "mails": [
-        rf"{HEAD}{ODOO}\.addons\.base\.(?:models\.)?ir_mail_server: "
+        rf"{HEAD}{ODOO}\.addons\.base\.models\.ir_mail_server: "
         rf"send: b(?P<quote>['\"])(?=.*\\r\\nSubject:)(?P<data>.*)(?P=quote)\s*$",
     ],
     "workers": [
