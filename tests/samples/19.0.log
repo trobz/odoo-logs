@@ -1,0 +1,4 @@
+2026-09-24 08:19:16,343 587512 INFO odoo19 werkzeug: 127.0.0.1 - - [24/Sep/2026 08:19:16] "POST /web/dataset/call_kw/res.partner/search_read#res.partner.search_read HTTP/1.1" 200 - 10 0.005 0.007
+2026-09-24 08:19:16,786 587512 INFO odoo19 werkzeug: 127.0.0.1 - - [24/Sep/2026 08:19:16] "POST /jsonrpc#res.partner.search_count HTTP/1.1" 200 - 8 0.004 0.430
+2026-09-24 08:19:16,273 587512 INFO odoo19 odoo.addons.base.models.res_users: Login successful for login:admin from 127.0.0.1
+2026-09-24 08:20:15,152 587512 INFO odoo19 odoo.addons.base.models.ir_cron: Job 'Base: Portal Users Deletion' (2) fully done (#loop 1; done 0; remaining 0; duration 0.01s)

@@ -68,6 +68,15 @@ def test_crons_read_the_debug_timing_line(logs):
     assert by_cron["Vacuum temporary reports"]["event"] == "done"
 
 
+def test_crons_read_the_19_completion_line(logs):
+    """19.0 ends a run with its status and counters in one line; the status
+    is the event and the duration is timed like any other version's."""
+    run = next(row for row in rows("crons", logs) if row["cron"] == "Base: Portal Users Deletion")
+
+    assert (run["cron_id"], run["event"], run["duration"]) == ("2", "fully done", "0.01")
+    assert main.cron_stats([run])[0]["t_total"] == 0.01
+
+
 def test_crons_keeps_cron_id_when_the_version_logs_one(logs):
     by_job = {row["cron"]: row["cron_id"] for row in rows("crons", logs)}
 
@@ -78,13 +87,14 @@ def test_crons_keeps_cron_id_when_the_version_logs_one(logs):
 
 def test_logins_reads_every_logger_name(logs):
     """9.0/10.0 log it from `service.common`, 11.0 from `base.res.res_users`,
-    13.0 on from `base.models.res_users`."""
+    13.0 on from `base.models.res_users`. 19.0 drops `db:` from the message,
+    leaving the database to the head."""
     found = rows("logins", logs)
 
-    assert field(found, "user") == ["pnguyen", "jdoe", "admin", "admin"]
-    assert field(found, "db") == ["odoo9", "odoo11", "odoo16", "odoo18"]
+    assert field(found, "user") == ["pnguyen", "jdoe", "admin", "admin", "admin"]
+    assert field(found, "db") == ["odoo9", "odoo11", "odoo16", "odoo18", "odoo19"]
     # The oldest wording names the database but no address at all.
-    assert field(found, "ip") == [None, "127.0.0.1", "n/a", "127.0.0.1"]
+    assert field(found, "ip") == [None, "127.0.0.1", "n/a", "127.0.0.1", "127.0.0.1"]
 
 
 def test_jobs_pulls_the_uuid_out_of_the_message(logs):
@@ -234,6 +244,25 @@ def test_calls_tolerate_versions_that_log_no_timing(logs):
     assert poll["queries"] is None
 
 
+def test_calls_key_19_rpc_on_the_model_method_it_names(logs):
+    """`/jsonrpc` hides what ran; 19.0 appends it to the path as
+    `#model.method`."""
+    rpc = next(row for row in rows("calls", logs) if row["route"] == "/jsonrpc")
+
+    assert (rpc["endpoint"], rpc["model"], rpc["method"]) == ("res.partner.search_count", "res.partner", "search_count")
+    assert parse.classify_route(rpc["route"]) == "rpc"
+
+
+def test_calls_do_not_read_the_19_fragment_as_the_method(logs):
+    """On 19.0 call_kw's path ends in `#model.method` too; left on the path,
+    the method would read `search_read#res.partner.search_read`."""
+    call_kw = next(
+        row for row in rows("calls", logs) if row["db"] == "odoo19" and row["route"].startswith("/web/dataset/")
+    )
+
+    assert (call_kw["endpoint"], call_kw["method"]) == ("res.partner.search_read", "search_read")
+
+
 def test_cron_stats_aggregate_only_runs_that_logged_a_duration(logs):
     """emoi's view. A cron whose every event is start/done/failed with no
     timing has nothing to average and must not show up as a zero."""
@@ -306,7 +335,7 @@ def test_user_stats_read_every_version_of_the_login_line(logs):
     scan, so a login logged by any version counts."""
     stats = {stat["user"]: stat for stat in main.user_stats(rows("logins", logs))}
 
-    assert (stats["admin"]["count"], stats["admin"]["days"]) == (2, 2)  # 16.0, 18.0
+    assert (stats["admin"]["count"], stats["admin"]["days"]) == (3, 3)  # 16.0, 18.0, 19.0
     assert stats["jdoe"]["count"] == 1  # 11.0
 
 

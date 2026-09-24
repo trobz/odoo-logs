@@ -203,8 +203,9 @@ def crons(
 ):
     """Cron timings, aggregated per cron job (ir_cron).
 
-    Only runs that logged a duration can be aggregated: 17.0 and 18.0 log one
-    at INFO, older versions only under `log_handler = <ir_cron logger>:DEBUG`.
+    Only runs that logged a duration can be aggregated: 17.0 and later log
+    one at INFO, older versions only under
+    `log_handler = <ir_cron logger>:DEBUG`.
     `--events` shows every event instead, including the ones that carry no
     timing — starts, failures and timeouts.
     """
@@ -477,6 +478,8 @@ def calls(
 
     Needs Odoo 12.0+, which appends `query_count query_time remaining_time`
     to that line. It is logged at INFO, so no special handler is required.
+    19.0 appends the `model.method` an RPC ran to the path, which keys a
+    `/jsonrpc` call the way call_kw routes are keyed.
 
     `--gt` with `--verbose` is emoi's slow-call export: the raw log lines of
     every request over the threshold, extracted to a file.

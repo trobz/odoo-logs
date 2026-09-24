@@ -6,7 +6,7 @@ instances — one per wording each command must recognise, and
 line is one nobody would notice going dead. The fixture reads every version
 as one corpus, so each command is still checked against all of them.
 Database names, logins, cron names and paths are anonymised to `odoo9` …
-`odoo18`; the message shapes the patterns key on are untouched. The 9.0 lines
+`odoo19`; the message shapes the patterns key on are untouched. The 9.0 lines
 come from emoi's own py2 fixtures, the oldest corpus reachable.
 
 A line logged outside a database (`?`, `None`) sits in the version its own
