@@ -197,7 +197,9 @@ Worker births, deaths, timeouts and resource limits.
 `--stats` is emoi&#x27;s `workers_stat`: one row per pid, with its `dob`/`dod`
 as `first`/`last`. The `t_` columns come from `WorkerCron (N) &lt;db&gt;
 time:2.386s`, the only worker line carrying a duration — `server.py`
-drops it after 15.0, so they are empty on 16.0 and later.
+drops it after 15.0, so they are empty on 16.0 and later. 20.0 logs from
+one logger per worker class (`odoo.service.server.WorkerHTTP`), with the
+worker&#x27;s pid in the head rather than the message.
 
 **Usage**:
 
@@ -224,7 +226,8 @@ Request timings from werkzeug&#x27;s access line, grouped by endpoint.
 Needs Odoo 12.0+, which appends `query_count query_time remaining_time`
 to that line. It is logged at INFO, so no special handler is required.
 19.0 appends the `model.method` an RPC ran to the path, which keys a
-`/jsonrpc` call the way call_kw routes are keyed.
+`/jsonrpc` call the way call_kw routes are keyed. 20.0 logs the line
+from `odoo.http.server` instead, with the session id and the cursor mode.
 
 `--gt` with `--verbose` is emoi&#x27;s slow-call export: the raw log lines of
 every request over the threshold, extracted to a file.
@@ -263,7 +266,8 @@ $ odoo-logs calls [OPTIONS] {LOGS...}
 ERROR and CRITICAL entries, grouped by exception type and message.
 
 `--logger` is the general form of emoi&#x27;s `-c cron/job/http`: those are
-just the ir_cron, queue_job and werkzeug loggers.
+just the ir_cron, queue_job and werkzeug loggers (`odoo.http.server`
+from 20.0).
 
 **Usage**:
 
@@ -279,6 +283,6 @@ $ odoo-logs errors [OPTIONS] {LOGS...}
 
 * `-n, --limit <int>`: Max rows; 0 for all.  [default: 0]
 * `-x, --exclude <str>`: Drop entries matching this regex; repeatable. Common noise: -x &#x27;raise_exception=False&#x27; -x Loading
-* `-l, --logger <str>`: Only entries whose logger matches this regex: -l ir_cron, -l &#x27;queue_job|werkzeug&#x27;.
+* `-l, --logger <str>`: Only entries whose logger matches this regex: -l ir_cron, -l &#x27;queue_job|werkzeug|http.server&#x27;.
 * `--traceback-only`: Only entries carrying a traceback.
 * `--help`: Show this message and exit.

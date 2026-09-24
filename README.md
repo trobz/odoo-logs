@@ -2,7 +2,7 @@
 
 Prefiltered, structured data out of Odoo server logs — so you don't grep them
 by hand, and so an MCP client can consume them. Reads plain and gzipped logs
-from 9.0 through 19.0.
+from 9.0 through 20.0.
 
 ## Installation
 
@@ -65,7 +65,9 @@ Five behaviours the flag list can't express:
 
 **`calls` reads werkzeug's access line**, not a DEBUG handler. Odoo appends
 `query_count query_time remaining_time` to it from 12.0 on, at INFO, so
-request timings are available on a default-configured instance:
+request timings are available on a default-configured instance. 20.0 serves
+HTTP itself and logs the line from `odoo.http.server`, with the session id
+and the cursor mode added; it reads the same way:
 
 ```
 $ odoo-logs calls server.log -n 3
@@ -140,7 +142,7 @@ Nothing is filtered by default — the usual noise filter is
 **Version coverage.** Loggers and messages get renamed between versions
 (`base.ir.ir_cron` on 10.0/11.0, `base.models.ir_cron` after), so each command
 matches every known wording. Patterns are backed by real lines in
-`tests/samples/<version>.log`, one file per version from 9.0 through 19.0,
+`tests/samples/<version>.log`, one file per version from 9.0 through 20.0,
 and a test asserts every pattern matches one — a wording that goes dead fails
 rather than quietly returning nothing. The 10.0 and 17.0 cron wordings are the exception: no
 corpus has one, so they are rendered from that version's own `_logger`

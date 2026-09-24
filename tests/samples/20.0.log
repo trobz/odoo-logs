@@ -1,0 +1,10 @@
+2026-09-24 04:46:01,780 563253 INFO odoo20 odoo.http.server: 127.0.0.1 tjyoJdbM - [24/Sep/2026 04:46:01] "GET /web/static/img/favicon.ico HTTP/1.1" 200 1150 0 0 0.002 -
+2026-09-24 04:46:02,059 563253 INFO odoo20 odoo.addons.base.models.res_users: Login successful for login:admin from 127.0.0.1
+2026-09-24 04:46:02,124 563253 INFO odoo20 odoo.http.server: 127.0.0.1 hbzoSrMH - [24/Sep/2026 04:46:02] "POST /web/dataset/call_kw/res.partner/search_read#res.partner.search_read HTTP/1.1" 200 111 9 0.004 0.007 rw
+2026-09-24 04:46:02,648 563253 INFO odoo20 odoo.http.server: 127.0.0.1 c9KuSVa6 - [24/Sep/2026 04:46:02] "POST /jsonrpc#res.partner.search_count HTTP/1.1" 200 43 8 0.003 0.246 rw
+2026-09-24 04:47:01,420 563253 INFO odoo20 odoo.addons.base.models.ir_cron: Job 'Base: Portal Users Deletion' (2) fully done (#loop 1; done 0; remaining 0; duration 0.02s)
+2026-09-24 04:47:25,404 563498 INFO odoo20 odoo.service.server.WorkerHTTP: Alive
+2026-09-24 04:47:26,050 563500 INFO odoo20 odoo.service.server.WorkerHTTP: Exiting cleanly. request_count: 3, registry count: 1.
+2026-09-24 04:49:26,718 563486 ERROR odoo20 odoo.service.server.PreforkServer: WorkerCron (563503) timeout after 120s
+2026-09-24 04:51:31,156 564278 DEBUG odoo20 odoo.http.server: [RES] 127.0.0.1 0WCp1N0I - [24/Sep/2026 04:51:31] "POST /web/webclient/version_info HTTP/1.1" 200 143 2 0.002 0.003 rw
+2026-09-24 04:51:31,157 564278 INFO odoo20 odoo.http.server: 127.0.0.1 0WCp1N0I - [24/Sep/2026 04:51:31] "POST /web/webclient/version_info HTTP/1.1" 200 143 2 0.002 0.003 rw

@@ -69,12 +69,15 @@ def test_crons_read_the_debug_timing_line(logs):
 
 
 def test_crons_read_the_19_completion_line(logs):
-    """19.0 ends a run with its status and counters in one line; the status
-    is the event and the duration is timed like any other version's."""
-    run = next(row for row in rows("crons", logs) if row["cron"] == "Base: Portal Users Deletion")
+    """19.0 and 20.0 end a run with its status and counters in one line; the
+    status is the event and the duration is timed like any other version's."""
+    by_db = {row["db"]: row for row in rows("crons", logs) if row["cron"] == "Base: Portal Users Deletion"}
 
-    assert (run["cron_id"], run["event"], run["duration"]) == ("2", "fully done", "0.01")
-    assert main.cron_stats([run])[0]["t_total"] == 0.01
+    assert [(run["cron_id"], run["event"], run["duration"]) for run in by_db.values()] == [
+        ("2", "fully done", "0.02"),  # 20.0
+        ("2", "fully done", "0.01"),  # 19.0
+    ]
+    assert main.cron_stats(list(by_db.values()))[0]["t_total"] == 0.03
 
 
 def test_crons_keeps_cron_id_when_the_version_logs_one(logs):
@@ -91,10 +94,10 @@ def test_logins_reads_every_logger_name(logs):
     leaving the database to the head."""
     found = rows("logins", logs)
 
-    assert field(found, "user") == ["pnguyen", "jdoe", "admin", "admin", "admin"]
-    assert field(found, "db") == ["odoo9", "odoo11", "odoo16", "odoo18", "odoo19"]
+    assert field(found, "user") == ["pnguyen", "jdoe", "admin", "admin", "admin", "admin"]
+    assert field(found, "db") == ["odoo9", "odoo11", "odoo16", "odoo18", "odoo20", "odoo19"]
     # The oldest wording names the database but no address at all.
-    assert field(found, "ip") == [None, "127.0.0.1", "n/a", "127.0.0.1", "127.0.0.1"]
+    assert field(found, "ip") == [None, "127.0.0.1", "n/a", "127.0.0.1", "127.0.0.1", "127.0.0.1"]
 
 
 def test_jobs_pulls_the_uuid_out_of_the_message(logs):
@@ -139,6 +142,20 @@ def test_workers_distinguishes_named_from_anonymous(logs):
     assert by_worker["853077"]["event"] == "polling for jobs"
     # `Worker (853090) exiting.` carries no worker type
     assert by_worker["853090"]["kind"] is None
+
+
+def test_workers_read_the_20_per_class_loggers(logs):
+    """20.0 logs from `odoo.service.server.WorkerHTTP` with no pid in the
+    message — the process logging is the worker. The master still names the
+    pid when it kills one."""
+    by_worker = {}
+    for row in rows("workers", logs):
+        by_worker.setdefault(row["worker"], []).append(row)
+
+    assert [(row["kind"], row["event"]) for row in by_worker["563498"]] == [("WorkerHTTP", "Alive")]
+    assert by_worker["563500"][0]["event"].startswith("Exiting cleanly.")
+    timeout = by_worker["563503"][0]
+    assert (timeout["kind"], timeout["event"], timeout["pid"]) == ("WorkerCron", "timeout after 120s", "563486")
 
 
 def test_workers_keep_the_cron_run_time_they_parse(logs):
@@ -245,12 +262,40 @@ def test_calls_tolerate_versions_that_log_no_timing(logs):
 
 
 def test_calls_key_19_rpc_on_the_model_method_it_names(logs):
-    """`/jsonrpc` hides what ran; 19.0 appends it to the path as
-    `#model.method`."""
-    rpc = next(row for row in rows("calls", logs) if row["route"] == "/jsonrpc")
+    """`/jsonrpc` hides what ran; 19.0 appends it to werkzeug's path as
+    `#model.method`, and 20.0 keeps it on odoo.http.server's."""
+    by_db = {row["db"]: row for row in rows("calls", logs) if row["route"] == "/jsonrpc"}
 
-    assert (rpc["endpoint"], rpc["model"], rpc["method"]) == ("res.partner.search_count", "res.partner", "search_count")
-    assert parse.classify_route(rpc["route"]) == "rpc"
+    for db in ("odoo19", "odoo20"):
+        rpc = by_db[db]
+        assert (rpc["endpoint"], rpc["model"], rpc["method"]) == (
+            "res.partner.search_count",
+            "res.partner",
+            "search_count",
+        )
+        assert parse.classify_route(rpc["route"]) == "rpc"
+
+
+def test_calls_read_the_20_access_line(logs):
+    """20.0 logs requests from odoo.http.server, not werkzeug, with the
+    session id where werkzeug had `-` and the cursor mode last."""
+    by_endpoint = {row["endpoint"]: row for row in rows("calls", logs) if row["db"] == "odoo20"}
+
+    call_kw = by_endpoint["res.partner.search_read"]
+    assert (call_kw["model"], call_kw["method"]) == ("res.partner", "search_read")
+    assert (call_kw["session"], call_kw["cursor"]) == ("hbzoSrMH", "rw")
+    assert (call_kw["queries"], call_kw["total"]) == (9, 0.011)
+    # A static file runs no query: `0`, not `0.000`, and no cursor.
+    favicon = by_endpoint["/web/static/img/favicon.ico"]
+    assert (favicon["query_time"], favicon["cursor"]) == (0.0, "-")
+
+
+def test_calls_skip_the_20_debug_copy_of_a_request(logs):
+    """Under `odoo.http.server:DEBUG`, 20.0 logs a `[RES] ` copy of every
+    access line; counting it would double every request."""
+    found = [row for row in rows("calls", logs) if row["route"] == "/web/webclient/version_info"]
+
+    assert [row["level"] for row in found] == ["INFO"]
 
 
 def test_calls_do_not_read_the_19_fragment_as_the_method(logs):
@@ -335,7 +380,8 @@ def test_user_stats_read_every_version_of_the_login_line(logs):
     scan, so a login logged by any version counts."""
     stats = {stat["user"]: stat for stat in main.user_stats(rows("logins", logs))}
 
-    assert (stats["admin"]["count"], stats["admin"]["days"]) == (3, 3)  # 16.0, 18.0, 19.0
+    # 16.0, 18.0, then 19.0 and 20.0 on the same day
+    assert (stats["admin"]["count"], stats["admin"]["days"]) == (4, 3)
     assert stats["jdoe"]["count"] == 1  # 11.0
 
 

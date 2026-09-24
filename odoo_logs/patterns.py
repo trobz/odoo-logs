@@ -6,7 +6,7 @@ Loggers and messages are renamed between Odoo versions (`base.ir.ir_cron` on
 than assuming a version.
 
 Every pattern here has a real log line behind it in `tests/samples/`, one file
-per version from 9.0 through 19.0; `test_every_pattern_has_a_line` enforces it,
+per version from 9.0 through 20.0; `test_every_pattern_has_a_line` enforces it,
 so a wording that goes dead fails rather than quietly matching nothing.
 """
 
@@ -122,6 +122,15 @@ _SOURCES: dict[str, list[str]] = {
         rf"{HEAD}werkzeug: (?P<ip>\S+) - - \[[^\]]*\] "
         rf'"(?P<verb>[A-Z]+) (?P<route>[^\s#]+)(?:#(?P<rpc>\S+))? [^"]*" (?P<status>\d+) \S+'
         rf"(?: (?P<queries>\d+) (?P<query_time>[\d.]+) (?P<other_time>[\d.]+))?",
+        # 20.0 serves HTTP itself and logs from odoo.http.server: the ident
+        # slot carries the session id (first 8 chars, `-` when none), the
+        # `#model.method` stays on the path, and the cursor mode (`ro`, `rw`,
+        # `ro->rw`, `-`) comes last. The body is a size, `stream` or `-`.
+        # The DEBUG `[REQ] `/`[RES] ` copies of the same request start with
+        # `[`, which the address can't, so a request is counted once.
+        rf"{HEAD}{ODOO}\.http\.server: (?P<ip>[^\s\[]\S*) (?P<session>\S+) - \[[^\]]*\] "
+        rf'"(?P<verb>[A-Z]+) (?P<route>[^\s#]+)(?:#(?P<rpc>\S+))? [^"]*" (?P<status>\d+) \S+ '
+        rf"(?P<queries>\d+) (?P<query_time>[\d.]+) (?P<other_time>[\d.]+) (?P<cursor>\S+)",
     ],
     # Not here: `queue_job.job`, the logger emoi reads. It only logs
     # enqueueing, on every version 10.0 through 19.0, so it says nothing about
@@ -158,6 +167,13 @@ _SOURCES: dict[str, list[str]] = {
         # Worker (15946) virtual memory limit (2048MB) reached
         rf"{HEAD}{ODOO}\.service\.server: Worker \((?P<worker>\d+)\) "
         rf"(?P<event>.*?)\s*$",
+        # 20.0 gives each worker class its own child logger and drops the pid
+        # from the message: the worker is the process logging, so the head's
+        # pid is the worker. Alive | Max request (3) reached. | Exiting cleanly…
+        rf"{HEAD}{ODOO}\.service\.server\.(?P<kind>Worker\w+): (?P<event>.*?)\s*$",
+        # 20.0, from the master: WorkerCron (563503) timeout after 120s
+        rf"{HEAD}{ODOO}\.service\.server\.PreforkServer: (?P<kind>Worker\w+) "
+        rf"\((?P<worker>\d+)\) (?P<event>.*?)\s*$",
     ],
 }
 

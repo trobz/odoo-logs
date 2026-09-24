@@ -139,9 +139,13 @@ def _enrich(row: dict[str, Any]) -> dict[str, Any]:
         found = patterns.UUID_RE.search(event)
         row["job"] = found.group(0) if found else None
 
+    # 20.0 workers log as themselves, so the process logging is the worker.
+    if "worker" in row and not row["worker"]:
+        row["worker"] = row["pid"]
+
     if "route" in row:
         row["model"], row["method"], row["endpoint"] = describe_route(row["route"])
-        # 19.0 names the model.method an RPC ran, which `/jsonrpc` hides.
+        # 19.0+ names the model.method an RPC ran, which `/jsonrpc` hides.
         if rpc := row.get("rpc"):
             model, _, method = rpc.rpartition(".")
             row["model"], row["method"], row["endpoint"] = model, method, rpc
