@@ -141,6 +141,10 @@ def _enrich(row: dict[str, Any]) -> dict[str, Any]:
 
     if "route" in row:
         row["model"], row["method"], row["endpoint"] = describe_route(row["route"])
+        # 19.0 names the model.method an RPC ran, which `/jsonrpc` hides.
+        if rpc := row.get("rpc"):
+            model, _, method = rpc.rpartition(".")
+            row["model"], row["method"], row["endpoint"] = model, method, rpc
         row["total"] = None
 
         # Odoo appends `query_count query_time remaining_time` from 12.0 on;

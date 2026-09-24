@@ -2,7 +2,7 @@
 
 Prefiltered, structured data out of Odoo server logs — so you don't grep them
 by hand, and so an MCP client can consume them. Reads plain and gzipped logs
-from 9.0 through 18.0.
+from 9.0 through 19.0.
 
 ## Installation
 
@@ -76,7 +76,9 @@ res.config.settings.get_views         2    1.063  0.531  0.583  443
 ```
 
 Only `call_kw` / `call_button` routes carry a real model and method, and
-those key as `model.method`. Every other route keys on its path with record
+those key as `model.method`. So does an RPC from 19.0 on, which appends the
+method it ran to the path (`/jsonrpc#res.partner.search_count`) where older
+versions only logged `/jsonrpc`. Every other route keys on its path with record
 ids collapsed (`/web/image/res.partner/3/avatar_128?unique=…` →
 `/web/image/res.partner/N/avatar_128`) so one endpoint doesn't fragment into
 one row per record.
@@ -138,9 +140,9 @@ Nothing is filtered by default — the usual noise filter is
 **Version coverage.** Loggers and messages get renamed between versions
 (`base.ir.ir_cron` on 10.0/11.0, `base.models.ir_cron` after), so each command
 matches every known wording. Patterns are backed by real lines in
-`tests/sample.log`, captured from 9.0 through 18.0, and a test asserts every
-pattern matches one — a wording that goes dead fails rather than quietly
-returning nothing. The 10.0 and 17.0 cron wordings are the exception: no
+`tests/samples/<version>.log`, one file per version from 9.0 through 19.0,
+and a test asserts every pattern matches one — a wording that goes dead fails
+rather than quietly returning nothing. The 10.0 and 17.0 cron wordings are the exception: no
 corpus has one, so they are rendered from that version's own `_logger`
 format string.
 
