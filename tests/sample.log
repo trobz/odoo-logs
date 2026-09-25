@@ -59,3 +59,10 @@ KeyError: 'socket'
 2026-08-17 23:07:28,727 3919419 DEBUG odoo16 odoo.addons.queue_job.controllers.main: <Job 553d4994-0e77-414d-9998-acd2f80dd2d6, priority:10> enqueue depends started
 2026-08-17 23:07:28,730 44811 DEBUG ? odoo.addons.queue_job.jobrunner.channels: job 553d4994-0e77-414d-9998-acd2f80dd2d6 marked done in channel root(C:1,Q:0,R:0,F:24)
 2026-08-17 23:07:28,733 3919419 INFO odoo16 werkzeug: 127.0.0.1 - - [17/Aug/2026 23:07:28] "GET /queue_job/runjob?db=odoo16&job_uuid=553d4994-0e77-414d-9998-acd2f80dd2d6 HTTP/1.1" 200 - 22 0.084 0.027
+2026-09-21 04:33:40,362 694 INFO None werkzeug: 127.0.0.1 - - [21/Sep/2026 04:33:40] "POST /jsonrpc HTTP/1.0" 200 - 12 0.008 3.071
+2026-09-21 04:38:28,010 755 ERROR ? odoo.addons.queue_job.jobrunner.runner: exception in GET http://localhost:8069/queue_job/runjob?db=odoo18&job_uuid=24b284bb-8043-45a1-9421-8f15bcba3bdb
+Traceback (most recent call last):
+  File "/home/odoo/src/user/queue/queue_job/jobrunner/runner.py", line 101, in urlopen
+    response = requests.get(url, timeout=1, auth=auth)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+requests.exceptions.ConnectionError: HTTPConnectionPool(host='localhost', port=8069): Max retries exceeded with url: /queue_job/runjob?db=odoo18&job_uuid=24b284bb-8043-45a1-9421-8f15bcba3bdb

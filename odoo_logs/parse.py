@@ -232,7 +232,8 @@ def _keep(
     if until and row["time"] > until:
         return False
 
-    return not database or row.get("db") == database
+    # A line with no db can't be shown to belong elsewhere, so -d keeps it.
+    return not database or row.get("db") in (database, *patterns.UNKNOWN_DBS)
 
 
 def scan(

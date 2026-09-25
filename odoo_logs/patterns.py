@@ -17,8 +17,10 @@ import re
 TIME = r"(?P<time>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3})"
 ODOO = r"(?:odoo|openerp)"
 
-# db is `?` on lines logged outside a registry (jobrunner, server startup).
+# db is `?` on lines logged outside a registry (jobrunner, server startup),
+# and `None` on 18.0 db-less RPC (/jsonrpc, /xmlrpc).
 HEAD = rf"^{TIME} (?P<pid>\d+) (?P<level>[A-Z]+) (?P<db>\S+) "
+UNKNOWN_DBS = ("?", "None")
 
 HEAD_RE = re.compile(rf"{HEAD}(?P<logger>[\w.]+): (?P<message>.*)")
 
@@ -37,7 +39,11 @@ CALL_KW_RE = re.compile(r"/call_(?:kw|button)/(?P<model>[^/]+)/(?P<method>[^/]+)
 # Record ids in a route would otherwise make one group per record.
 ROUTE_ID_RE = re.compile(r"/\d+(?=/|$)")
 DURATION_RE = re.compile(r"(?:done in|executed in|time:)\s*(?P<duration>[\d.]+)s")
-ALT_DB_RE = re.compile(r"(?:on db|using database|for db:) '?(?P<alt_db>[^' ]+)'?")
+# `[?&]db=`: the jobrunner names the db only in the runjob URL it failed on.
+ALT_DB_RE = re.compile(
+    r"(?:(?:on db|using database|for db:|ready for db|runner lock on) '?|[?&]db=)"
+    r"(?P<alt_db>[^'\"&,)\s]+)"
+)
 
 # Header lines inside a `mails` row's raw SMTP payload, which carries `\r\n`
 # as the literal two-character escapes smtplib's `repr()` produces, not real

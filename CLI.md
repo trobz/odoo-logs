@@ -16,7 +16,7 @@ $ odoo-logs [OPTIONS] COMMAND [ARGS]...
 * `-f, --from <str>`: Only entries at or after YYYY-MM-DD[ HH:MM:SS].
 * `-t, --to <str>`: Only entries at or before YYYY-MM-DD[ HH:MM:SS].
 * `-p, --period <str>`: A range in words: today, yesterday, &#x27;3 days ago&#x27;, &#x27;this week&#x27;, &#x27;last month&#x27;. --from/--to override their end of it.
-* `-d, --database <str>`: Only entries for this database.
+* `-d, --database <str>`: Only entries for this database, plus lines whose db is unknown (&#x27;?&#x27; or &#x27;None&#x27;), which may belong to another database.
 * `--verbose, --extract FILE`: Also write the raw log lines behind the output to FILE, readable without the server&#x27;s logs.
 * `--log-level <str>`: [default: WARNING]
 * `--install-completion`: Install completion for the current shell.
