@@ -7,6 +7,7 @@ import gzip
 import re
 from collections.abc import Iterable, Iterator
 from datetime import datetime, timedelta
+from email.header import decode_header
 from pathlib import Path
 from typing import IO, Any
 
@@ -139,6 +140,13 @@ def _enrich(row: dict[str, Any]) -> dict[str, Any]:
         found = patterns.UUID_RE.search(event)
         row["job"] = found.group(0) if found else None
 
+    if "data" in row:
+        unfolded = patterns.MAIL_FOLD_RE.sub(" ", row.pop("data"))
+        row["mail_from"] = _unescape(_search(patterns.MAIL_FROM_RE, unfolded, "value"))
+        row["mail_to"] = _unescape(_search(patterns.MAIL_TO_RE, unfolded, "value"))
+        row["subject"] = _decode_subject(_unescape(_search(patterns.MAIL_SUBJECT_RE, unfolded, "value")))
+        row["message_id"] = _unescape(_search(patterns.MAIL_MESSAGE_ID_RE, unfolded, "value"))
+
     if "route" in row:
         row["model"], row["method"], row["endpoint"] = describe_route(row["route"])
         row["total"] = None
@@ -180,6 +188,31 @@ def classify_route(route: str) -> str:
             return name
 
     return "other"
+
+
+def _decode_subject(subject: str | None) -> str | None:
+    """RFC 2047: a non-ASCII subject rides as `=?utf-8?q?...?=` words mixed
+    into otherwise plain text; decode each back to the character it names."""
+    if not subject:
+        return subject
+
+    try:
+        return "".join(
+            chunk.decode(encoding or "ascii", errors="replace") if isinstance(chunk, bytes) else chunk
+            for chunk, encoding in decode_header(subject)
+        )
+    except (ValueError, LookupError):
+        return subject
+
+
+def _unescape(value: str | None) -> str | None:
+    """The DATA payload is `repr(bytes)`, so `'` rides as `\\'`. Undo quote
+    and backslash escapes only — `\\r`/`\\n` stay as-is: the fold regex and
+    header patterns still match on the two-character sequences."""
+    if not value:
+        return value
+
+    return re.sub(r"\\(['\"\\])", r"\1", value)
 
 
 def _search(regex, text: str, group: str) -> str | None:
