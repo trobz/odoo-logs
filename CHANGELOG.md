@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.1.2 (2026-09-25)
+
+### Bug Fixes
+
+- Keep lines with no database under -d
+  ([`d596b07`](https://github.com/trobz/odoo-logs/commit/d596b0788321334c184d0476b626ba7187dd0cf0))
+
+
 ## v0.1.1 (2026-09-11)
 
 ### Bug Fixes
