@@ -352,6 +352,22 @@ def mails(files: LOGS, limit: LIMIT = 0):
     _emit("mails", files, limit)
 
 
+@app.command("mail-errors")
+def mail_errors(files: LOGS, limit: LIMIT = 0):
+    """Outgoing emails the SMTP server refused, or Odoo failed to send.
+
+    `mails` only lists messages the server took, so a relay rejecting every
+    login makes it go quiet rather than report anything; this is the other
+    half. Two sources: the 4xx/5xx SMTP replies on the same `smtp_debug`
+    log `mails` reads (`code` set — a 535 is a rejected login), and
+    mail.mail's own `failed sending mail` line, logged at ERROR without any
+    debug handler (`mail_id` set). That second line covers failures during
+    the send only: on 12.0 a refused connection or login marks the batch
+    `exception` without logging it, so the SMTP replies are the only trace.
+    """
+    _emit("mail-errors", files, limit)
+
+
 @app.command()
 def users(
     files: LOGS,

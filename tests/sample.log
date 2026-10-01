@@ -66,3 +66,26 @@ Traceback (most recent call last):
     response = requests.get(url, timeout=1, auth=auth)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 requests.exceptions.ConnectionError: HTTPConnectionPool(host='localhost', port=8069): Max retries exceeded with url: /queue_job/runjob?db=odoo18&job_uuid=24b284bb-8043-45a1-9421-8f15bcba3bdb
+2026-10-01 08:01:18,019 17494 DEBUG odoo12 odoo.addons.base.models.ir_mail_server: reply: b'535 5.7.0 Invalid login or password\r\n'
+2026-10-01 08:01:18,019 17494 DEBUG odoo12 odoo.addons.base.models.ir_mail_server: reply: retcode (535); Msg: b'5.7.0 Invalid login or password'
+2026-10-01 08:01:18,033 17494 DEBUG odoo12 odoo.addons.base.models.ir_mail_server: reply: retcode (334); Msg: b'UGFzc3dvcmQ6'
+2026-10-01 08:37:29,860 27954 DEBUG odoo12 odoo.addons.base.models.ir_mail_server: reply: retcode (550); Msg: b'5.7.1 Sender mismatch'
+2026-10-01 08:37:29,876 27954 ERROR odoo12 odoo.addons.mail.models.mail_mail: failed sending mail (id: 156222) due to Échec d'envoi du courriel
+Échec de l'envoi du courriel via le serveur SMTP  'None'.
+SMTPDataError: 550
+5.7.1 Sender mismatch
+Traceback (most recent call last):
+  File "/opt/odoo/12.0/odoo/addons/base/models/ir_mail_server.py", line 501, in send_email
+    smtp.sendmail(smtp_from, smtp_to_list, message.as_string())
+  File "/usr/lib/python3.7/smtplib.py", line 888, in sendmail
+    raise SMTPDataError(code, resp)
+smtplib.SMTPDataError: (550, b'5.7.1 Sender mismatch')
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/opt/odoo/12.0/addons/mail/models/mail_mail.py", line 370, in _send
+    msg, mail_server_id=mail.mail_server_id.id, smtp_session=smtp_session)
+  File "/opt/odoo/12.0/odoo/addons/base/models/ir_mail_server.py", line 511, in send_email
+    raise MailDeliveryException(_("Mail Delivery Failed"), msg)
+odoo.addons.base.models.ir_mail_server.MailDeliveryException: ("Échec d'envoi du courriel", "Échec de l'envoi du courriel via le serveur SMTP  'None'.\nSMTPDataError: 550\n5.7.1 Sender mismatch")

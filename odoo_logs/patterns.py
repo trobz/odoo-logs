@@ -160,6 +160,26 @@ _SOURCES: dict[str, list[str]] = {
         rf"{HEAD}{ODOO}\.addons\.base\.models\.ir_mail_server: "
         rf"send: b(?P<quote>['\"])(?=.*\\r\\nSubject:)(?P<data>.*)(?P=quote)\s*$",
     ],
+    # `mails` only sees a message once the server accepted it far enough to
+    # take its DATA, so a relay refusing every send reads as nothing to send.
+    # These are the refusals.
+    "mail-errors": [
+        # Same `smtp_debug` channel as `mails`: smtplib logs each reply's
+        # code. Only 4xx/5xx — 2xx/3xx are the session going fine (a 334 is
+        # the server asking for the next AUTH step). One send can refuse more
+        # than once: smtplib retries a rejected AUTH PLAIN as AUTH LOGIN.
+        # The `reply: b'535 ...'` line logged just before carries the same
+        # code, so only this one matches — one row per reply, not two.
+        rf"{HEAD}{ODOO}\.addons\.base\.models\.ir_mail_server: "
+        rf"reply: retcode \((?P<code>[45]\d\d)\); Msg: b(?P<quote>['\"])(?P<error>.*)(?P=quote)\s*$",
+        # 12.0-19.0, at ERROR, so it needs no debug handler — but only for a
+        # failure during the send itself: on 12.0 a refused connect or login
+        # marks the whole batch `exception` without logging a line at all.
+        # The format string is untranslated; the reason after it is the
+        # (translated) first line of MailDeliveryException's message.
+        rf"{HEAD}{ODOO}\.addons\.mail\.models\.mail_mail: "
+        rf"failed sending mail \(id: (?P<mail_id>\d+)\) due to (?P<error>.*?)\s*$",
+    ],
     "workers": [
         # Worker WorkerHTTP (384363) alive
         rf"{HEAD}{ODOO}\.service\.server: Worker (?P<kind>Worker\w+) "
@@ -199,6 +219,7 @@ COLUMNS: dict[str, list[str]] = {
     "passwords": ["time", "db", "user", "uid", "by", "ip", "event"],
     "jobs": ["time", "db", "job", "priority", "event"],
     "mails": ["time", "db", "mail_from", "mail_to", "subject", "message_id"],
+    "mail-errors": ["time", "db", "code", "mail_id", "error"],
     "workers": ["time", "db", "kind", "worker", "event", "duration"],
     "calls": ["time", "db", "endpoint", "status", "queries", "total", "query_time"],
 }

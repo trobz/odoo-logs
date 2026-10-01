@@ -96,6 +96,34 @@ def test_mails_reads_the_smtp_debug_payload(logs):
     assert invoice["mail_to"] == '"ACME Farm" <jdoe@example.com>'
 
 
+def test_mail_errors_reads_refused_smtp_replies(logs):
+    """A relay rejecting the login never gets as far as DATA, so `mails` has
+    nothing to show for it; the 4xx/5xx reply is the only trace. 3xx (a 334
+    asking for the next AUTH step) is the session working, and the raw
+    `reply: b'535 ...'` line before each retcode must not double the row."""
+    found = [row for row in rows("mail-errors", logs) if row["code"]]
+
+    assert field(found, "code") == ["535", "550"]
+    assert field(found, "error") == ["5.7.0 Invalid login or password", "5.7.1 Sender mismatch"]
+    assert set(field(found, "db")) == {"odoo12"}
+    assert set(field(found, "mail_id")) == {None}
+
+
+def test_mail_errors_reads_mail_mail_failures(logs):
+    """mail.mail logs a failed send at ERROR on its own, no debug handler
+    needed; the reason is the translated first line of the exception."""
+    (found,) = [row for row in rows("mail-errors", logs) if row["mail_id"]]
+
+    assert found["mail_id"] == "156222"
+    assert found["error"] == "Échec d'envoi du courriel"
+    assert found["code"] is None
+
+
+def test_mails_skips_refused_replies(logs):
+    """The other half of `mail-errors`: a refusal is not a sent mail."""
+    assert all(row["subject"] for row in rows("mails", logs))
+
+
 def test_mails_unfolds_a_subject_split_across_lines(logs):
     """A long encoded-word Subject wraps onto a continuation line starting
     with a space, RFC 5322-style; the header regexes only ever see one

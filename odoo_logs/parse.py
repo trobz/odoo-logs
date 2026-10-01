@@ -354,6 +354,10 @@ def _enrich(row: dict[str, Any]) -> dict[str, Any]:
         row["subject"] = _decode_subject(_unescape(_search(patterns.MAIL_SUBJECT_RE, unfolded, "value")))
         row["message_id"] = _unescape(_search(patterns.MAIL_MESSAGE_ID_RE, unfolded, "value"))
 
+    # An SMTP reply is `repr(bytes)` like the DATA payload above.
+    if row.get("code"):
+        row["error"] = _unescape(row["error"])
+
     if "route" in row:
         row["model"], row["method"], row["endpoint"] = describe_route(row["route"])
         row["total"] = None
