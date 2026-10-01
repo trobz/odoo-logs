@@ -217,3 +217,15 @@ def test_entries_for_vanished_files_are_dropped(tmp_path, cache_home):
         f"{tmp_path / 'server.log.2.gz'}|{(tmp_path / 'server.log.2.gz').stat().st_size}|"
         f"{(tmp_path / 'server.log.2.gz').stat().st_mtime_ns}"
     ]
+
+
+def test_no_window_prints_nothing_on_stderr(rotation):
+    result = runner.invoke(main.app, ["list", str(rotation)])
+
+    assert result.stderr == ""
+
+
+def test_a_window_is_echoed_on_stderr(rotation):
+    result = runner.invoke(main.app, ["--from", "2026-09-25", "list", str(rotation)])
+
+    assert result.stderr == "Getting logs from 2026-09-25 00:00:00 to None\n"

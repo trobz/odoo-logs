@@ -127,7 +127,10 @@ def main(
             start, end = parse.parse_period(period)
             _since, _until = _since or start, _until or end
 
-        typer.echo(f"Getting logs from {_since} to {_until}", err=True)
+        # "from None to None" says nothing: the window is only worth echoing
+        # when one was asked for.
+        if _since or _until:
+            typer.echo(f"Getting logs from {_since} to {_until}", err=True)
     except ValueError as e:
         typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1) from None
