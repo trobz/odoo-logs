@@ -45,6 +45,18 @@ odoo-logs --from 2026-08-01 --database prod logins server.log
 odoo-logs --period 'last week' calls server.log --check-activity
 ```
 
+`list` shows which files hold which time before anything is parsed. It reads
+only the first and last entry of each file (a `.gz` can't be read from the end, so it is inflated once and the result
+kept in `~/.cache/odoo-logs/periods.json`) and takes a directory, or a base `server.log` for
+its whole rotation. With a window, it keeps only the files that overlap it —
+the set a scan of that window has to read:
+
+```bash
+odoo-logs list /var/log/odoo
+odoo-logs --period yesterday list /var/log/odoo
+odoo-logs --output-format json --from '2026-09-25 19:50' --to '2026-09-25 20:10' list server.log
+```
+
 `--period` takes the range in words — `today`, `yesterday`, `3 days ago`,
 `this week`, `last month` — and is nothing more than `--from`/`--to` worked
 out for you.
