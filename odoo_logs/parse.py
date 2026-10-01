@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import calendar
 import gzip
+import json
+import os
 import re
 from collections.abc import Iterable, Iterator
 from datetime import datetime, timedelta
@@ -34,6 +36,202 @@ def open_log(path: Path) -> IO[str]:
     opener = gzip.open if path.suffix == ".gz" else open
 
     return opener(path, "rt", encoding="utf-8", errors="replace")
+
+
+# `2026-09-25 19:50:18,449`: what every entry head starts with.
+STAMP_LEN = len("2026-09-25 19:50:18,449")
+TAIL_CHUNK = 64 * 1024
+# A log directory also holds lock files and the like: `server.log`,
+# `server.log.2026-09-25`, `server.log.1.gz` and `odoo-2026-09-25.log` are
+# logs, `server.log_rotating_lock` is not.
+LOG_NAME_RE = re.compile(r"\.log($|[.\-])")
+
+
+def collect(paths: Iterable[Path]) -> list[Path]:
+    """Expand what `list` is handed into the log files it names.
+
+    A directory yields its logs. A base `*.log` also yields its rotated
+    siblings (`server.log.*`), so `server.log` stands for the whole rotation;
+    any other file stands for itself.
+    """
+    found: list[Path] = []
+
+    for path in paths:
+        if path.is_dir():
+            found.extend(sorted(p for p in path.iterdir() if p.is_file() and LOG_NAME_RE.search(p.name)))
+            continue
+
+        found.append(path)
+        if path.suffix == ".log":
+            found.extend(sorted(path.parent.glob(f"{path.name}.*")))
+
+    return list(dict.fromkeys(found))
+
+
+def _stamped(line: bytes) -> bool:
+    """Cheap test for an entry head: traceback lines never start like this."""
+    return len(line) >= STAMP_LEN and line[4:5] == b"-" and line[:4].isdigit()
+
+
+def _stamp(line: bytes | None) -> datetime | None:
+    if line is None:
+        return None
+
+    try:
+        return datetime.strptime(line[:STAMP_LEN].decode("ascii"), LOG_TIME)
+    except (ValueError, UnicodeDecodeError):
+        return None
+
+
+def _head_tail_plain(path: Path) -> tuple[bytes | None, bytes | None]:
+    """First and last entry head of a plain file, reading only its two ends."""
+    with path.open("rb") as fh:
+        first = next((line for line in fh if _stamped(line)), None)
+        if first is None:
+            return None, None
+
+        position = fh.seek(0, 2)
+        held = b""
+
+        while position > 0:
+            step = min(TAIL_CHUNK, position)
+            position -= step
+            fh.seek(position)
+            lines = (fh.read(step) + held).split(b"\n")
+
+            # Unless this chunk starts the file, its first line is cut off.
+            held = lines[0] if position else b""
+            for line in reversed(lines[1:] if position else lines):
+                if _stamped(line):
+                    return first, line
+
+    return first, first
+
+
+def _head_tail_gzip(path: Path) -> tuple[bytes | None, bytes | None, bool]:
+    """A gzip stream can't be read from the end, so it is inflated once.
+
+    Memory stays at one line. A truncated archive (a rotation interrupted
+    mid-write) still yields everything before the break.
+    """
+    first = last = None
+    complete = True
+
+    try:
+        with gzip.open(path, "rb") as fh:
+            for line in fh:
+                if _stamped(line):
+                    first = first or line
+                    last = line
+    except (OSError, EOFError):
+        complete = False
+
+    return first, last, complete
+
+
+def _cache_file() -> Path:
+    return Path(os.environ.get("XDG_CACHE_HOME") or Path.home() / ".cache") / "odoo-logs" / "periods.json"
+
+
+def _load_cache() -> dict[str, Any]:
+    try:
+        found = json.loads(_cache_file().read_text())
+    except (OSError, ValueError):
+        return {}
+
+    return found if isinstance(found, dict) else {}
+
+
+def _save_cache(cache: dict[str, Any]) -> None:
+    """Best effort: a cache that can't be written costs a re-read, not a failure."""
+    cache = {key: value for key, value in cache.items() if os.path.exists(key.rsplit("|", 2)[0])}
+
+    try:
+        target = _cache_file()
+        target.parent.mkdir(parents=True, exist_ok=True)
+        scratch = target.with_suffix(f".{os.getpid()}.tmp")
+        scratch.write_text(json.dumps(cache))
+        scratch.replace(target)
+    except OSError:
+        pass
+
+
+def _gzip_period(path: Path, cache: dict[str, Any]) -> tuple[datetime | None, datetime | None, bool]:
+    """A rotated archive never changes, so what inflating it taught is kept,
+    keyed by the file's size and mtime: a rewritten archive misses on its own."""
+    stat = path.stat()
+    key = f"{path.resolve()}|{stat.st_size}|{stat.st_mtime_ns}"
+
+    if key in cache:
+        start, end, complete = cache[key]
+        return (
+            datetime.fromisoformat(start) if start else None,
+            datetime.fromisoformat(end) if end else None,
+            complete,
+        )
+
+    first, last, complete = _head_tail_gzip(path)
+    start, end = _stamp(first), _stamp(last)
+    cache[key] = [start and start.isoformat(), end and end.isoformat(), complete]
+
+    return start, end, complete
+
+
+def describe(path: Path, cache: dict[str, Any] | None = None) -> dict[str, Any]:
+    """One row of `list`: what a log file is and what period it covers."""
+    notes: list[str] = []
+
+    if path.suffix == ".gz":
+        notes.append("gz")
+        start, end, complete = _gzip_period(path, {} if cache is None else cache)
+        if not complete:
+            notes.append("truncated")
+    else:
+        first, last = _head_tail_plain(path)
+        start, end = _stamp(first), _stamp(last)
+
+    if start is None:
+        notes.append("empty" if path.stat().st_size == 0 else "no timestamps")
+
+    return {"path": str(path), "size": path.stat().st_size, "start": start, "end": end, "note": ", ".join(notes)}
+
+
+def survey(
+    paths: Iterable[Path],
+    since: datetime | None = None,
+    until: datetime | None = None,
+) -> list[dict[str, Any]]:
+    """Every log file under `paths` with its period, oldest first.
+
+    Files outside --from/--to are dropped, so what is left is exactly the
+    set a scan of that window would have to read. A file whose period can't
+    be read is kept: nothing says it is outside.
+    """
+    cache = _load_cache()
+    before = dict(cache)
+    files = [describe(path, cache) for path in collect(paths)]
+    if cache != before:
+        _save_cache(cache)
+
+    files.sort(key=lambda row: (row["start"] is None, row["start"] or datetime.min, row["path"]))
+
+    # Rotation hands each file the period after the last one; when it
+    # doesn't, a window may be read twice or not at all.
+    reach = None
+    for row in files:
+        if reach and row["start"] and row["start"] < reach:
+            row["note"] = ", ".join(filter(None, [row["note"], "overlaps previous"]))
+        if row["end"]:
+            reach = max(reach or row["end"], row["end"])
+
+    return [row for row in files if _within(row, since, until)]
+
+
+def _within(row: dict[str, Any], since: datetime | None, until: datetime | None) -> bool:
+    if since and row["end"] and row["end"] < since:
+        return False
+
+    return not (until and row["start"] and row["start"] > until)
 
 
 def parse_time(raw: str) -> datetime:

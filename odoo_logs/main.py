@@ -198,6 +198,63 @@ def _emit(name: str, files: list[Path], limit: int) -> None:
         w.rows(patterns.COLUMNS[name], rows, no_wrap=TIMES)
 
 
+LIST_COLUMNS = ["path", "size", "start", "end", "note"]
+
+
+@app.command(name="list")
+def list_(
+    paths: Annotated[
+        list[Path],
+        typer.Argument(
+            metavar="PATH...",
+            exists=True,
+            help="Log directory or files. A base `server.log` also brings its rotated `server.log.*` "
+            "(plain or .gz); any other file stands for itself.",
+        ),
+    ],
+):
+    """List log files and the period each one covers.
+
+    Reads only the first and last entry of each file, so it answers "which
+    files hold this time" without parsing a log: -f/-t/-p keep just the
+    files that overlap the window. A gzipped file can't be read from the end,
+    so it is inflated once and remembered (`~/.cache/odoo-logs/`). Times are as
+    written in the logs.
+    """
+    rows = parse.survey(paths, _since, _until)
+
+    folder = None
+    if _output_format == "text":
+        # One directory is the usual case; naming it once keeps the table
+        # narrow enough that a long path doesn't fold across lines.
+        parents = {Path(row["path"]).parent for row in rows}
+        folder = parents.pop() if len(parents) == 1 else None
+
+        for row in rows:
+            row["size"] = _human(row["size"])
+            if folder:
+                row["path"] = Path(row["path"]).name
+
+    # A column no file needs would only squeeze the others; csv and json keep
+    # one shape whatever the files hold.
+    columns = [c for c in LIST_COLUMNS if c != "note" or _output_format != "text" or any(row["note"] for row in rows)]
+
+    with _writer() as w:
+        w.rows(columns, rows, no_wrap={"path", "start", "end"}, empty_msg="(no log files)")
+        if folder:
+            w.footer(f"in {folder}")
+
+
+def _human(size: float) -> str:
+    """`ls -h` style: short enough that a size never folds across lines."""
+    for unit in ("B", "K", "M", "G"):
+        if size < 1024 or unit == "G":
+            return f"{size:.0f}{unit}" if unit == "B" or size >= 10 else f"{size:.1f}{unit}"
+        size /= 1024
+
+    return str(size)
+
+
 @app.command()
 def crons(
     files: LOGS,
