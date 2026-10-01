@@ -212,7 +212,7 @@ def list_(
             metavar="PATH...",
             exists=True,
             help="Log directory or files. A base `server.log` also brings its rotated `server.log.*` "
-            "(plain or .gz); any other file stands for itself.",
+            "and dated `server.log-*` (plain or .gz); any other file stands for itself.",
         ),
     ],
 ):

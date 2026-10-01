@@ -81,6 +81,19 @@ def test_a_base_logfile_stands_for_its_whole_rotation(rotation):
     assert names(found) == ["server.log.2026-09-24.gz", "server.log.2026-09-25", "server.log"]
 
 
+def test_a_base_logfile_brings_dated_rotations_too(tmp_path):
+    """logrotate's dateext names them `server.log-<date>-<epoch>[.gz]`."""
+    (tmp_path / "server.log").write_text(entries("2026-10-01", "00:02:05", "04:32:43"))
+    (tmp_path / "server.log-2026-09-30-1790726664").write_text(entries("2026-09-29", "00:01:51", "23:59:00"))
+    with gzip.open(tmp_path / "server.log-2026-09-29-1790640084.gz", "wt") as fh:
+        fh.write(entries("2026-09-28", "00:05:24", "23:00:00"))
+    (tmp_path / "server.log_rotating_lock").write_text("")
+
+    found = parse.survey([tmp_path / "server.log"])
+
+    assert names(found) == ["server.log-2026-09-29-1790640084.gz", "server.log-2026-09-30-1790726664", "server.log"]
+
+
 def test_any_other_file_stands_for_itself(rotation):
     assert names(parse.survey([rotation / "server.log.2026-09-25"])) == ["server.log.2026-09-25"]
 

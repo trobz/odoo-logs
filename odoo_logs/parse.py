@@ -51,7 +51,8 @@ def collect(paths: Iterable[Path]) -> list[Path]:
     """Expand what `list` is handed into the log files it names.
 
     A directory yields its logs. A base `*.log` also yields its rotated
-    siblings (`server.log.*`), so `server.log` stands for the whole rotation;
+    siblings (`server.log.*` and dated `server.log-*`), so `server.log` stands
+    for the whole rotation;
     any other file stands for itself.
     """
     found: list[Path] = []
@@ -63,7 +64,8 @@ def collect(paths: Iterable[Path]) -> list[Path]:
 
         found.append(path)
         if path.suffix == ".log":
-            found.extend(sorted(path.parent.glob(f"{path.name}.*")))
+            # `server.log.1`, and logrotate's dateext `server.log-2026-09-29-<epoch>.gz`.
+            found.extend(sorted([*path.parent.glob(f"{path.name}.*"), *path.parent.glob(f"{path.name}-*")]))
 
     return list(dict.fromkeys(found))
 

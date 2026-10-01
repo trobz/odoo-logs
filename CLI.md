@@ -55,7 +55,7 @@ $ odoo-logs list [OPTIONS] {PATH...}
 
 **Arguments**:
 
-* `PATH...`: Log directory or files. A base `server.log` also brings its rotated `server.log.*` (plain or .gz); any other file stands for itself.  [required]
+* `PATH...`: Log directory or files. A base `server.log` also brings its rotated `server.log.*` and dated `server.log-*` (plain or .gz); any other file stands for itself.  [required]
 
 **Options**:
 
