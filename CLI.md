@@ -27,6 +27,8 @@ $ odoo-logs [OPTIONS] COMMAND [ARGS]...
 
 * `crons`: Cron timings, aggregated per cron job...
 * `logins`: Successful logins: who, which database,...
+* `mails`: Outgoing emails, read off the SMTP debug log.
+* `mail-errors`: Outgoing emails the SMTP server refused,...
 * `users`: Login activity per user: how often, over...
 * `usage`: What the instance&#x27;s traffic was for:...
 * `passwords`: Password changes: whose password, changed...
@@ -69,6 +71,60 @@ Successful logins: who, which database, from where.
 
 ```console
 $ odoo-logs logins [OPTIONS] {LOGS...}
+```
+
+**Arguments**:
+
+* `LOGS...`: Log files to read; plain or gzipped (server.log server.log.*.gz).  [required]
+
+**Options**:
+
+* `-n, --limit <int>`: Max rows; 0 for all.  [default: 0]
+* `--help`: Show this message and exit.
+
+## `odoo-logs mails`
+
+Outgoing emails, read off the SMTP debug log.
+
+Needs `smtp_debug` on the mail server, plus
+`log_handler = odoo.addons.base.models.ir_mail_server:DEBUG` — a
+default `log_level = info` instance writes nothing. Odoo then routes
+every smtplib debug call through its own logger at DEBUG, one SMTP
+send per line. Only the DATA payload carrying a Subject header
+matches — EHLO, MAIL FROM:&lt;x&gt; and the rest of the SMTP chatter don&#x27;t.
+
+**Usage**:
+
+```console
+$ odoo-logs mails [OPTIONS] {LOGS...}
+```
+
+**Arguments**:
+
+* `LOGS...`: Log files to read; plain or gzipped (server.log server.log.*.gz).  [required]
+
+**Options**:
+
+* `-n, --limit <int>`: Max rows; 0 for all.  [default: 0]
+* `--help`: Show this message and exit.
+
+## `odoo-logs mail-errors`
+
+Outgoing emails the SMTP server refused, or Odoo failed to send.
+
+`mails` only lists messages the server took, so a relay rejecting every
+login makes it go quiet rather than report anything; this is the other
+half. Two sources: the 4xx/5xx SMTP replies on the same `smtp_debug`
+log `mails` reads (`code` set — a 535 is a rejected login), and
+mail.mail&#x27;s own `failed sending mail` line, logged at ERROR without any
+debug handler (`mail_id` set). That second line covers failures during
+the send only: on 12.0 a refused connection or login marks the batch
+`exception` without logging it, so the SMTP replies are the only trace.
+
+**Usage**:
+
+```console
+$ odoo-logs mail-errors [OPTIONS] {LOGS...}
 ```
 
 **Arguments**:
