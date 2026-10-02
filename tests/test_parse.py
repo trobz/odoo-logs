@@ -617,6 +617,33 @@ def test_recurring_failures_group_across_processes():
     assert "3600s" in same.pop()
 
 
+def test_rejected_statements_group_across_their_literals():
+    """Each failed INSERT carries its own values; they are one failure."""
+    first = main._squash(
+        'bad query: INSERT INTO "t" ("id", "name") VALUES (nextval(\'t_id_seq\'), \'BARK\', '
+        "'2026-09-08 04:35:00.008456', 22, 48.0) RETURNING id"
+    )
+    second = main._squash(
+        "bad query: INSERT INTO \"t\" (\"id\", \"name\") VALUES (nextval('t_id_seq'), 'it''s', "
+        "'2026-09-14 04:35:00.1', 7, 9.5) RETURNING id"
+    )
+    other_table = main._squash(
+        'bad query: INSERT INTO "u" ("id", "name") VALUES (nextval(\'u_id_seq\'), \'x\', 1, 2.0)'
+    )
+
+    assert first == second
+    assert '"name"' in first
+    assert first != other_table
+
+
+def test_smtp_refusals_group_across_attempts():
+    base = "Mail delivery failed: (550, b'5.4.1 Access denied [%s %s %s]')"
+    a = main._squash(base % ("TY2PEPF0000AB89.outlook.com", "2026-09-07T07:34:14.982Z", "08DF0B042CF0925D"))
+    b = main._squash(base % ("OSA0EPF000000CD.outlook.com", "2026-09-28T08:33:53.068Z", "08DF1C6CEAE64B83"))
+
+    assert a == b
+
+
 def test_table_cells_are_not_read_as_markup(tmp_path: Path):
     """Rich reads `[sale.order]` as a style tag and `[/opt/odoo]` as a closing
     one, so a message either lost text or took the command down at the print,
