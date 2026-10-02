@@ -43,6 +43,8 @@ AGGREGATE = Annotated[
 TIMES = {"time", "first", "last", "period"}
 
 _output_file: str | None = None
+# A rejected statement can run to several KB; the table shows its head.
+ERROR_WIDTH = 200
 _output_format: str = "text"
 _since: datetime | None = None
 _until: datetime | None = None
@@ -789,7 +791,7 @@ def _emit_grouped(w: output.Writer, entries: list[dict[str, Any]], limit: int) -
         for key, count in ranked
     ]
 
-    w.rows(["type", "error", "count", "first", "last"], rows, no_wrap=TIMES)
+    w.rows(["type", "error", "count", "first", "last"], rows, no_wrap=TIMES, truncate={"error": ERROR_WIDTH})
     w.footer(f"{len(entries)} entries, {len(counts)} distinct")
 
 

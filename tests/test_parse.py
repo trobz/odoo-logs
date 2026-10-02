@@ -644,6 +644,18 @@ def test_smtp_refusals_group_across_attempts():
     assert a == b
 
 
+def test_long_errors_are_truncated_in_the_table_only(tmp_path: Path):
+    data = [{"type": "t", "error": "x" * 500, "count": 1}]
+    cols = ["type", "error", "count"]
+
+    for fmt, full in (("text", False), ("json", True), ("csv", True)):
+        path = tmp_path / f"out.{fmt}"
+        with output.Writer(str(path), fmt) as w:
+            w.rows(cols, data, truncate={"error": 50})
+
+        assert ("x" * 500 in path.read_text().replace("\n", "").replace("│", "").replace(" ", "")) is full
+
+
 def test_table_cells_are_not_read_as_markup(tmp_path: Path):
     """Rich reads `[sale.order]` as a style tag and `[/opt/odoo]` as a closing
     one, so a message either lost text or took the command down at the print,
