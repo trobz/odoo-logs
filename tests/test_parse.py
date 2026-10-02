@@ -632,8 +632,15 @@ def test_rejected_statements_group_across_their_literals():
     )
 
     assert first == second
-    assert '"name"' in first
+    assert first == 'bad query: INSERT INTO "t"'
     assert first != other_table
+
+
+def test_inserts_into_one_table_group_across_column_sets():
+    narrow = main._squash('bad query: INSERT INTO "t" ("id", "a") VALUES (nextval(\'t_id_seq\'), 1)')
+    wide = main._squash('bad query: INSERT INTO "t" ("id", "a", "b") VALUES (nextval(\'t_id_seq\'), 1, \'x\')')
+
+    assert narrow == wide
 
 
 def test_smtp_refusals_group_across_attempts():
