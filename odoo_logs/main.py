@@ -43,6 +43,8 @@ AGGREGATE = Annotated[
 TIMES = {"time", "first", "last", "period"}
 
 _output_file: str | None = None
+# A rejected statement can run to several KB; the table shows its head.
+ERROR_WIDTH = 200
 _output_format: str = "text"
 _since: datetime | None = None
 _until: datetime | None = None
@@ -789,7 +791,7 @@ def _emit_grouped(w: output.Writer, entries: list[dict[str, Any]], limit: int) -
         for key, count in ranked
     ]
 
-    w.rows(["type", "error", "count", "first", "last"], rows, no_wrap=TIMES)
+    w.rows(["type", "error", "count", "first", "last"], rows, no_wrap=TIMES, truncate={"error": ERROR_WIDTH})
     w.footer(f"{len(entries)} entries, {len(counts)} distinct")
 
 
@@ -800,7 +802,32 @@ def _squash(error: str) -> str:
     timeout`), which would otherwise split one recurring failure into one
     group per process. Only parenthesised numbers are collapsed — a bare
     number is usually part of the message (`timeout after 3600s`).
+
+    Two kinds of message embed the data of the failing call instead, and each
+    occurrence would be its own group: a rejected SQL statement carries its
+    literals (and, for an INSERT, whichever columns were set), and an SMTP
+    refusal carries a per-attempt `[host timestamp id]`.
     """
     squashed = re.sub(r"\s+", " ", error or "").strip()
+    squashed = re.sub(r"\((\d+)\)", "(N)", squashed)
+    squashed = re.sub(r"\[[^\]]*\d{4}-\d\d-\d\dT[^\]]*\]", "[...]", squashed)
 
-    return re.sub(r"\((\d+)\)", "(N)", squashed)
+    if squashed.startswith("bad query:"):
+        # Which columns an INSERT names depends on which fields the caller
+        # set, not on what failed: the table is the failure.
+        squashed = _SQL_INSERT.sub(r"\1", squashed)
+        squashed = _SQL_LITERAL.sub(_mask_literal, squashed)
+
+    return squashed
+
+
+_SQL_INSERT = re.compile(r'^(bad query: INSERT INTO "[^"]+").*')
+
+# Double-quoted identifiers are matched first so they survive untouched.
+_SQL_LITERAL = re.compile(r'"[^"]*"|\'(?:[^\']|\'\')*\'|\b\d+(?:\.\d+)?\b')
+
+
+def _mask_literal(matched: re.Match[str]) -> str:
+    text = matched.group()
+
+    return text if text.startswith('"') else "?"
