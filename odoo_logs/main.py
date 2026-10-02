@@ -805,17 +805,23 @@ def _squash(error: str) -> str:
 
     Two kinds of message embed the data of the failing call instead, and each
     occurrence would be its own group: a rejected SQL statement carries its
-    literals, and an SMTP refusal carries a per-attempt `[host timestamp id]`.
+    literals (and, for an INSERT, whichever columns were set), and an SMTP
+    refusal carries a per-attempt `[host timestamp id]`.
     """
     squashed = re.sub(r"\s+", " ", error or "").strip()
     squashed = re.sub(r"\((\d+)\)", "(N)", squashed)
     squashed = re.sub(r"\[[^\]]*\d{4}-\d\d-\d\dT[^\]]*\]", "[...]", squashed)
 
     if squashed.startswith("bad query:"):
+        # Which columns an INSERT names depends on which fields the caller
+        # set, not on what failed: the table is the failure.
+        squashed = _SQL_INSERT.sub(r"\1", squashed)
         squashed = _SQL_LITERAL.sub(_mask_literal, squashed)
 
     return squashed
 
+
+_SQL_INSERT = re.compile(r'^(bad query: INSERT INTO "[^"]+").*')
 
 # Double-quoted identifiers are matched first so they survive untouched.
 _SQL_LITERAL = re.compile(r'"[^"]*"|\'(?:[^\']|\'\')*\'|\b\d+(?:\.\d+)?\b')
