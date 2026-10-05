@@ -2,6 +2,25 @@
 
 <!-- version list -->
 
+## v0.2.0 (2026-10-05)
+
+### Bug Fixes
+
+- Bring dated rotations (server.log-<date>-<epoch>) along with a base logfile
+  ([`cd2a453`](https://github.com/trobz/odoo-logs/commit/cd2a4530556001e075796e7dd5ce7bb5fbab90b5))
+
+- Only echo the window on stderr when one was given
+  ([`cd666de`](https://github.com/trobz/odoo-logs/commit/cd666de9817458f82b9f0d06a64f43e97012d507))
+
+- Save the list cache after each archive, not once at the end
+  ([`201c28e`](https://github.com/trobz/odoo-logs/commit/201c28e52f7775fc9c67d31c1bd043dab91a9c91))
+
+### Features
+
+- Add list command showing the period each log file covers
+  ([`061447a`](https://github.com/trobz/odoo-logs/commit/061447af4be136d8718373948cfad9245d657acc))
+
+
 ## v0.1.2 (2026-09-25)
 
 ### Bug Fixes
