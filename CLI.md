@@ -25,8 +25,10 @@ $ odoo-logs [OPTIONS] COMMAND [ARGS]...
 
 **Commands**:
 
+* `list`: List log files and the period each one...
 * `crons`: Cron timings, aggregated per cron job...
 * `logins`: Successful logins: who, which database,...
+* `mails`: Outgoing emails, read off the SMTP debug log.
 * `users`: Login activity per user: how often, over...
 * `usage`: What the instance&#x27;s traffic was for:...
 * `passwords`: Password changes: whose password, changed...
@@ -34,6 +36,30 @@ $ odoo-logs [OPTIONS] COMMAND [ARGS]...
 * `workers`: Worker births, deaths, timeouts and...
 * `calls`: Request timings from werkzeug&#x27;s access...
 * `errors`: ERROR and CRITICAL entries, grouped by...
+
+## `odoo-logs list`
+
+List log files and the period each one covers.
+
+Reads only the first and last entry of each file, so it answers &quot;which
+files hold this time&quot; without parsing a log: -f/-t/-p keep just the
+files that overlap the window. A gzipped file can&#x27;t be read from the end,
+so it is inflated once and remembered (`~/.cache/odoo-logs/`). Times are as
+written in the logs.
+
+**Usage**:
+
+```console
+$ odoo-logs list [OPTIONS] {PATH...}
+```
+
+**Arguments**:
+
+* `PATH...`: Log directory or files. A base `server.log` also brings its rotated `server.log.*` and dated `server.log-*` (plain or .gz); any other file stands for itself.  [required]
+
+**Options**:
+
+* `--help`: Show this message and exit.
 
 ## `odoo-logs crons`
 
@@ -69,6 +95,32 @@ Successful logins: who, which database, from where.
 
 ```console
 $ odoo-logs logins [OPTIONS] {LOGS...}
+```
+
+**Arguments**:
+
+* `LOGS...`: Log files to read; plain or gzipped (server.log server.log.*.gz).  [required]
+
+**Options**:
+
+* `-n, --limit <int>`: Max rows; 0 for all.  [default: 0]
+* `--help`: Show this message and exit.
+
+## `odoo-logs mails`
+
+Outgoing emails, read off the SMTP debug log.
+
+Needs `smtp_debug` on the mail server, plus
+`log_handler = odoo.addons.base.models.ir_mail_server:DEBUG` — a
+default `log_level = info` instance writes nothing. Odoo then routes
+every smtplib debug call through its own logger at DEBUG, one SMTP
+send per line. Only the DATA payload carrying a Subject header
+matches — EHLO, MAIL FROM:&lt;x&gt; and the rest of the SMTP chatter don&#x27;t.
+
+**Usage**:
+
+```console
+$ odoo-logs mails [OPTIONS] {LOGS...}
 ```
 
 **Arguments**:
