@@ -216,6 +216,38 @@ def test_a_broken_cache_is_ignored(rotation, cache_home):
     assert len(parse.survey([rotation])) == 3
 
 
+def test_each_learned_archive_is_saved_as_soon_as_its_read(tmp_path, cache_home, monkeypatch):
+    """An interrupted run keeps the archives it already inflated.
+
+    A caller can cut `list` short (Ctrl-C, odoo-activity wraps it in a
+    CPU-time limit for #46); saving only at the end would throw away every
+    archive described before the cut, so the next run starts over.
+    """
+    packed = tmp_path / "server.log.1.gz"
+    with gzip.open(packed, "wt") as fh:
+        fh.write(entries("2026-09-24", "07:00:00", "08:00:00"))
+    other = tmp_path / "server.log.2.gz"
+    other.write_bytes(gzip.compress(entries("2026-09-23", "07:00:00", "08:00:00").encode()))
+
+    real_describe = parse.describe
+    calls = iter([False, True])  # first file succeeds, second is the interruption
+
+    def die_after_second(path, cache=None):
+        if next(calls):
+            raise KeyboardInterrupt
+        return real_describe(path, cache)
+
+    monkeypatch.setattr(parse, "describe", die_after_second)
+
+    with pytest.raises(KeyboardInterrupt):
+        parse.survey([packed, other])
+
+    # The first archive's period survived the interruption.
+    assert list(json.loads((cache_home / "odoo-logs" / "periods.json").read_text())) == [
+        f"{packed}|{packed.stat().st_size}|{packed.stat().st_mtime_ns}"
+    ]
+
+
 def test_entries_for_vanished_files_are_dropped(tmp_path, cache_home):
     packed = tmp_path / "server.log.1.gz"
     with gzip.open(packed, "wt") as fh:

@@ -210,10 +210,17 @@ def survey(
     be read is kept: nothing says it is outside.
     """
     cache = _load_cache()
-    before = dict(cache)
-    files = [describe(path, cache) for path in collect(paths)]
-    if cache != before:
-        _save_cache(cache)
+    files = []
+    for path in collect(paths):
+        before = dict(cache)
+        files.append(describe(path, cache))
+        # Save as soon as a describe() taught the cache something, so an
+        # interrupted run (Ctrl-C, a caller's CPU-time limit) keeps the
+        # archives it already inflated instead of losing them to the next
+        # run. The cache is a few KB; the extra writes are nothing next to
+        # inflating one.
+        if cache != before:
+            _save_cache(cache)
 
     files.sort(key=lambda row: (row["start"] is None, row["start"] or datetime.min, row["path"]))
 
