@@ -17,6 +17,9 @@ from odoo_logs import patterns
 
 LOG_TIME = "%Y-%m-%d %H:%M:%S,%f"
 ERROR_LEVELS = ("ERROR", "CRITICAL")
+# The mail.mail logger owns the ERROR entries mail-errors reads as blocks:
+# its traceback carries the real reason the head line only titles.
+MAIL_MAIL_LOGGER = "odoo.addons.mail.models.mail_mail"
 
 # Each --from/--to format with the unit it leaves open on its right.
 _BOUND_FMTS = (
@@ -495,6 +498,73 @@ def scan(
     # stream with a heap merge if a command ever returns millions of rows.
     rows.sort(key=lambda row: row["time"])
 
+    return rows
+
+
+def scan_with_blocks(
+    name: str,
+    paths: Iterable[Path],
+    since: datetime | None = None,
+    until: datetime | None = None,
+    database: str | None = None,
+    source: bool = False,
+) -> list[dict[str, Any]]:
+    """`scan`, plus the ERROR entries whose head line matches one of
+    `name`'s patterns read as a whole block with the traceback lines.
+
+    Two reasons this exists (both from the mail-errors review): a relay
+    dropping the connection mid-send only leaves its reason in the
+    traceback under the head line, and `failed sending mail (id: N) due to
+    Mail Delivery Failed` names only the exception's title — the SMTP code
+    (550, b'5.7.1 Sender mismatch') sits in the traceback's last
+    exception line. `_block` already lifts that line into `error`, so the
+    row's `error` becomes the real reason whenever the entry carries a
+    traceback, falling back to the head-line text when it doesn't.
+    """
+    head_matchers = patterns.PATTERNS[name]
+    rows = scan(name, paths, since, until, database, source)
+    blocks_seen: dict[tuple, dict[str, Any]] = {}
+    for block in blocks(paths, since, until, database):
+        if block["logger"] != MAIL_MAIL_LOGGER:
+            continue
+        head_line = block["text"].splitlines()[0] if block["text"] else ""
+        for regex in head_matchers:
+            matched = regex.match(head_line)
+            if not matched:
+                continue
+            row = matched.groupdict()
+            for key in patterns.FIELDS[name]:
+                row.setdefault(key, None)
+            row = _enrich(row)
+            # blocks only carries ERROR/CRITICAL; a block's own `error`
+            # (the last exception line) is the real reason. MailDelivery-
+            # Exception wraps its title and reason into one tuple-ish
+            # repr — keep the inner reason, it is what names the refusal.
+            error = block["error"]
+            if error.startswith('("') and error.endswith('")'):
+                # MailDeliveryException's repr: (title, reason) — the
+                # reason is what names the refusal.
+                error = error[2:-2].split('", "', 1)[-1]
+            row["error"] = error or row["error"]
+            row["time"] = block["time"]
+            row["db"] = block["db"]
+            row["path"] = block["path"]
+            if source:
+                row["source"] = block["text"]
+            key = (row["time"], row.get("mail_id"))
+            # Replace the scan() row for the same entry: the block version
+            # carries the real reason where the head-line row only carries
+            # the exception's title.
+            blocks_seen[key] = row
+            break
+    for row in rows:
+        key = (row["time"], row.get("mail_id"))
+        if row.get("mail_id") is not None and key in blocks_seen:
+            row.clear()
+            row.update(blocks_seen[key])
+            del blocks_seen[key]
+    rows.extend(blocks_seen.values())
+    rows.sort(key=lambda row: row["time"])
     return rows
 
 

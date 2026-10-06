@@ -26,7 +26,7 @@ HEAD_RE = re.compile(rf"{HEAD}(?P<logger>[\w.]+): (?P<message>.*)")
 
 # Last frame of a traceback — the line errors are grouped by.
 EXCEPTION_RE = re.compile(
-    r"^(?P<type>[\w.]*(?:Error|Exception|Warning|Exit|Interrupt|Abort))"
+    r"^(?P<type>[\w.]*(?:Error|Exception|Warning|Exit|Interrupt|Abort|Disconnected|Refused))"
     r"(?:: (?P<error>.*))?$"
 )
 
@@ -172,11 +172,22 @@ _SOURCES: dict[str, list[str]] = {
         # code, so only this one matches — one row per reply, not two.
         rf"{HEAD}{ODOO}\.addons\.base\.models\.ir_mail_server: "
         rf"reply: retcode \((?P<code>[45]\d\d)\); Msg: b(?P<quote>['\"])(?P<error>.*)(?P=quote)\s*$",
+        # A relay closing the connection mid-session never answers with a
+        # code; mail_mail logs the broken send at ERROR instead. Read with
+        # parse.blocks() so the traceback under the head line comes along:
+        # it carries the real reason (SMTPServerDisconnected: ...), which
+        # the head's own text never does.
+        rf"{HEAD}{ODOO}\.addons\.mail\.models\.mail_mail: "
+        rf"Exception while processing mail with ID (?P<mail_id>\d+) and Msg-Id (?P<error>.*?)\s*$",
         # 12.0-19.0, at ERROR, so it needs no debug handler — but only for a
         # failure during the send itself: on 12.0 a refused connect or login
         # marks the whole batch `exception` without logging a line at all.
         # The format string is untranslated; the reason after it is the
-        # (translated) first line of MailDeliveryException's message.
+        # (translated) title of MailDeliveryException's message. Its real
+        # reason (SMTPSenderRefused: (550, ...)) sits in the traceback lines
+        # under the head line, which blocks()-based reading lifts into
+        # `error` via EXCEPTION_RE; the `due to` part only remains the
+        # fallback when the entry carries no traceback.
         rf"{HEAD}{ODOO}\.addons\.mail\.models\.mail_mail: "
         rf"failed sending mail \(id: (?P<mail_id>\d+)\) due to (?P<error>.*?)\s*$",
     ],

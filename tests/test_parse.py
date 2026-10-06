@@ -13,7 +13,8 @@ from odoo_logs import main, output, parse, patterns
 
 
 def rows(name: str, logs: list[Path], **kw) -> list[dict]:
-    return parse.scan(name, logs, **kw)
+    reader = parse.scan_with_blocks if name == "mail-errors" else parse.scan
+    return reader(name, logs, **kw)
 
 
 def field(rows: list[dict], key: str) -> list:
@@ -111,12 +112,22 @@ def test_mail_errors_reads_refused_smtp_replies(logs):
 
 def test_mail_errors_reads_mail_mail_failures(logs):
     """mail.mail logs a failed send at ERROR on its own, no debug handler
-    needed; the reason is the translated first line of the exception."""
-    (found,) = [row for row in rows("mail-errors", logs) if row["mail_id"]]
+    needed; entries are read as blocks so the error column carries the
+    real reason from the traceback, not just the exception's title."""
+    found = {row["mail_id"]: row for row in rows("mail-errors", logs) if row["mail_id"]}
 
-    assert found["mail_id"] == "156222"
-    assert found["error"] == "Échec d'envoi du courriel"
-    assert found["code"] is None
+    # A refused sender: the head line titles the exception; the traceback
+    # under it carries the real refusal, which blocks-reading lifts in.
+    refused = found["156222"]
+    assert refused["code"] is None
+    assert "SMTPDataError: 550" in refused["error"]
+    assert "5.7.1 Sender mismatch" in refused["error"]
+
+    # A relay dropping the connection mid-send: no reply code at all, the
+    # ERROR entry (and its traceback) is the only trace.
+    dropped = found["63"]
+    assert "Connection unexpectedly closed" in dropped["error"]
+    assert dropped["code"] is None
 
 
 def test_mails_skips_refused_replies(logs):
