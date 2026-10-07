@@ -643,6 +643,44 @@ def test_inserts_into_one_table_group_across_column_sets():
     assert narrow == wide
 
 
+def test_bad_query_bytes_reprs_group_as_the_decoded_sql():
+    """From 18.0 the rejected query is logged as a bytes repr (`bad query:
+    b'…'`), so three different failures there read as one `b?` on main:
+    decode the repr before masking."""
+    plain = main._squash('bad query: SELECT "a" FROM "t" WHERE id = 1')
+    b18 = main._squash('bad query: b\'SELECT "a" FROM "t" WHERE id = 1\'')
+    other = main._squash('bad query: b\'SELECT "a" FROM "t" WHERE id = 2\'')
+    # A plain-text 17.0 query is untouched.
+    assert plain == 'bad query: SELECT "a" FROM "t" WHERE id = ?'
+
+    assert b18 == plain
+    assert other == b18  # literals masked: same shape, one group
+
+
+def test_bad_query_bytes_repr_inserts_group_by_table():
+    # Python's repr of bytes renders `"` unescaped inside `b'...'`, and
+    # escapes only the single quotes the SQL itself contains.
+    quoted = main._squash(
+        "bad query: b'INSERT INTO \"t\" (\"id\", \"a\") VALUES (nextval(\\'t_id_seq\\'), \\'it\\'\\'s\\')'"
+    )
+    assert quoted == 'bad query: INSERT INTO "t"'
+
+
+def test_bad_query_bytes_repr_double_quoted_form():
+    """When the SQL itself contains a `'`, Python's repr switches to a
+    `b"..."` wrapper and escapes the single quotes; that form decodes too."""
+    sql_repr = repr(b"SELECT 'x' FROM \"t\" WHERE id = 1")  # a log line, not SQL run anywhere
+    wrapped = main._squash("bad query: " + sql_repr)
+
+    assert wrapped == 'bad query: SELECT ? FROM "t" WHERE id = ?'
+
+
+def test_a_broken_bytes_repr_does_not_crash():
+    # An unterminated bytes repr fails literal_eval; it then falls through
+    # to the ordinary literal mask like any undecodable bad query.
+    assert main._squash("bad query: b'select \\'") == "bad query: b?"
+
+
 def test_smtp_refusals_group_across_attempts():
     base = "Mail delivery failed: (550, b'5.4.1 Access denied [%s %s %s]')"
     a = main._squash(base % ("TY2PEPF0000AB89.outlook.com", "2026-09-07T07:34:14.982Z", "08DF0B042CF0925D"))

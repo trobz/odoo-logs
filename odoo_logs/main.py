@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import logging
 import re
 from collections import Counter
@@ -808,7 +809,8 @@ def _squash(error: str) -> str:
     literals (and, for an INSERT, whichever columns were set), and an SMTP
     refusal carries a per-attempt `[host timestamp id]`.
     """
-    squashed = re.sub(r"\s+", " ", error or "").strip()
+    squashed = _unbytes(error or "")
+    squashed = re.sub(r"\s+", " ", squashed).strip()
     squashed = re.sub(r"\((\d+)\)", "(N)", squashed)
     squashed = re.sub(r"\[[^\]]*\d{4}-\d\d-\d\dT[^\]]*\]", "[...]", squashed)
 
@@ -819,6 +821,30 @@ def _squash(error: str) -> str:
         squashed = _SQL_LITERAL.sub(_mask_literal, squashed)
 
     return squashed
+
+
+_BAD_QUERY = "bad query: "
+
+
+def _unbytes(error: str) -> str:
+    """From 18.0, `sql_db.py` logs the rejected query without `ustr`, so the
+    line reads `bad query: b'…'` (17 and older are plain text). Decode the
+    bytes repr so the SQL mask sees SQL again — without it any query with
+    no quote inside is one indistinguishable `b?` group, and INSERTs with
+    quotes in their values stop matching the INSERT mask."""
+    if not error.startswith(_BAD_QUERY):
+        return error
+
+    quoted = error[len(_BAD_QUERY) :]
+    if quoted[:2] not in ("b'", 'b"'):
+        return error
+
+    try:
+        decoded = ast.literal_eval(quoted)
+    except (ValueError, SyntaxError):
+        return error
+
+    return _BAD_QUERY + decoded.decode("utf-8", "replace")
 
 
 _SQL_INSERT = re.compile(r'^(bad query: INSERT INTO "[^"]+").*')
