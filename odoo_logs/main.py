@@ -146,7 +146,8 @@ def _scan(name: str, files: list[Path], keep: Callable[[dict[str, Any]], bool] |
     `keep` runs before the dump, so --verbose extracts what the command kept
     rather than everything the patterns matched.
     """
-    rows = parse.scan(name, files, _since, _until, _database, source=bool(_verbose))
+    reader = parse.scan_with_blocks if name in patterns.BLOCK_COMMANDS else parse.scan
+    rows = reader(name, files, _since, _until, _database, source=bool(_verbose))
     if keep:
         rows = [row for row in rows if keep(row)]
 

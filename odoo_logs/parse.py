@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 import calendar
 import gzip
 import json
@@ -501,6 +502,27 @@ def scan(
     return rows
 
 
+def _reason_of(block: dict[str, Any]) -> str | None:
+    """The real reason a mail.mail ERROR entry failed, from its block.
+
+    The block's `error` is the last exception line's text. For a refused
+    send that is MailDeliveryException's two-element repr — e.g.
+    `('Mail Delivery Failed', "Mail delivery failed via SMTP server
+    '…'.\nSMTPSenderRefused: (550, …)")` — and which element gets which
+    quote depends on the title's own quotes, so literal_eval reads the
+    tuple whatever the quoting and the reason is returned. Anything else
+    (SMTPServerDisconnected, or an unparseable line) comes back as-is.
+    """
+    error = block["error"]
+    if error.startswith(("('", '("')) and error.endswith(("')", '")')):
+        try:
+            _, reason = ast.literal_eval(error)
+        except ValueError:
+            return error
+        return reason
+    return error
+
+
 def scan_with_blocks(
     name: str,
     paths: Iterable[Path],
@@ -538,14 +560,13 @@ def scan_with_blocks(
             row = _enrich(row)
             # blocks only carries ERROR/CRITICAL; a block's own `error`
             # (the last exception line) is the real reason. MailDelivery-
-            # Exception wraps its title and reason into one tuple-ish
-            # repr — keep the inner reason, it is what names the refusal.
-            error = block["error"]
-            if error.startswith('("') and error.endswith('")'):
-                # MailDeliveryException's repr: (title, reason) — the
-                # reason is what names the refusal.
-                error = error[2:-2].split('", "', 1)[-1]
-            row["error"] = error or row["error"]
+            # Exception wraps title and reason into a two-element repr —
+            # `('Mail Delivery Failed', "Mail delivery failed via SMTP
+            # server '…'.\nSMTPSenderRefused: …")` — and which quote wraps
+            # which element depends on the title's own quotes (the French
+            # title flips the pair). ast.literal_eval reads the tuple
+            # whatever the quoting; the reason is what names the refusal.
+            row["error"] = _reason_of(block) or row["error"]
             row["time"] = block["time"]
             row["db"] = block["db"]
             row["path"] = block["path"]

@@ -215,6 +215,10 @@ _SOURCES: dict[str, list[str]] = {
 PATTERNS: dict[str, list[re.Pattern[str]]] = {
     name: [re.compile(source) for source in sources] for name, sources in _SOURCES.items()
 }
+# Commands whose ERROR entries must be read with their traceback attached
+# (parse.scan_with_blocks): the reason the group key can't see lives in the
+# block, not the head line.
+BLOCK_COMMANDS = frozenset({"mail-errors"})
 
 # Patterns within a command capture different groups (only 18.0 logs a cron id,
 # only a named worker has a kind). Rows are padded to the union so a command
