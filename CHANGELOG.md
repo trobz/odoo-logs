@@ -2,6 +2,22 @@
 
 <!-- version list -->
 
+## v0.3.0 (2026-10-07)
+
+### Bug Fixes
+
+- **mail-errors**: Use the block reader in the CLI, read both repr orders
+  ([`f7e14d4`](https://github.com/trobz/odoo-logs/commit/f7e14d4b72a9b980c94e965bd6a929fc9bd64adb))
+
+### Features
+
+- Add mail-errors command for refused and failed sends
+  ([`4312d47`](https://github.com/trobz/odoo-logs/commit/4312d47f507aab8117790de161d3890edcd9787e))
+
+- **mail-errors**: Read mail.mail failures as blocks, catch dropped connections
+  ([`19b716a`](https://github.com/trobz/odoo-logs/commit/19b716a3dede70a8920a19ad8cf7aefda7a5071c))
+
+
 ## v0.2.0 (2026-10-05)
 
 ### Bug Fixes
