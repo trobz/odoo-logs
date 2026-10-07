@@ -26,7 +26,7 @@ HEAD_RE = re.compile(rf"{HEAD}(?P<logger>[\w.]+): (?P<message>.*)")
 
 # Last frame of a traceback — the line errors are grouped by.
 EXCEPTION_RE = re.compile(
-    r"^(?P<type>[\w.]*(?:Error|Exception|Warning|Exit|Interrupt|Abort))"
+    r"^(?P<type>[\w.]*(?:Error|Exception|Warning|Exit|Interrupt|Abort|Disconnected|Refused))"
     r"(?:: (?P<error>.*))?$"
 )
 
@@ -160,6 +160,37 @@ _SOURCES: dict[str, list[str]] = {
         rf"{HEAD}{ODOO}\.addons\.base\.models\.ir_mail_server: "
         rf"send: b(?P<quote>['\"])(?=.*\\r\\nSubject:)(?P<data>.*)(?P=quote)\s*$",
     ],
+    # `mails` only sees a message once the server accepted it far enough to
+    # take its DATA, so a relay refusing every send reads as nothing to send.
+    # These are the refusals.
+    "mail-errors": [
+        # Same `smtp_debug` channel as `mails`: smtplib logs each reply's
+        # code. Only 4xx/5xx — 2xx/3xx are the session going fine (a 334 is
+        # the server asking for the next AUTH step). One send can refuse more
+        # than once: smtplib retries a rejected AUTH PLAIN as AUTH LOGIN.
+        # The `reply: b'535 ...'` line logged just before carries the same
+        # code, so only this one matches — one row per reply, not two.
+        rf"{HEAD}{ODOO}\.addons\.base\.models\.ir_mail_server: "
+        rf"reply: retcode \((?P<code>[45]\d\d)\); Msg: b(?P<quote>['\"])(?P<error>.*)(?P=quote)\s*$",
+        # A relay closing the connection mid-session never answers with a
+        # code; mail_mail logs the broken send at ERROR instead. Read with
+        # parse.blocks() so the traceback under the head line comes along:
+        # it carries the real reason (SMTPServerDisconnected: ...), which
+        # the head's own text never does.
+        rf"{HEAD}{ODOO}\.addons\.mail\.models\.mail_mail: "
+        rf"Exception while processing mail with ID (?P<mail_id>\d+) and Msg-Id (?P<error>.*?)\s*$",
+        # 12.0-19.0, at ERROR, so it needs no debug handler — but only for a
+        # failure during the send itself: on 12.0 a refused connect or login
+        # marks the whole batch `exception` without logging a line at all.
+        # The format string is untranslated; the reason after it is the
+        # (translated) title of MailDeliveryException's message. Its real
+        # reason (SMTPSenderRefused: (550, ...)) sits in the traceback lines
+        # under the head line, which blocks()-based reading lifts into
+        # `error` via EXCEPTION_RE; the `due to` part only remains the
+        # fallback when the entry carries no traceback.
+        rf"{HEAD}{ODOO}\.addons\.mail\.models\.mail_mail: "
+        rf"failed sending mail \(id: (?P<mail_id>\d+)\) due to (?P<error>.*?)\s*$",
+    ],
     "workers": [
         # Worker WorkerHTTP (384363) alive
         rf"{HEAD}{ODOO}\.service\.server: Worker (?P<kind>Worker\w+) "
@@ -184,6 +215,10 @@ _SOURCES: dict[str, list[str]] = {
 PATTERNS: dict[str, list[re.Pattern[str]]] = {
     name: [re.compile(source) for source in sources] for name, sources in _SOURCES.items()
 }
+# Commands whose ERROR entries must be read with their traceback attached
+# (parse.scan_with_blocks): the reason the group key can't see lives in the
+# block, not the head line.
+BLOCK_COMMANDS = frozenset({"mail-errors"})
 
 # Patterns within a command capture different groups (only 18.0 logs a cron id,
 # only a named worker has a kind). Rows are padded to the union so a command
@@ -199,6 +234,7 @@ COLUMNS: dict[str, list[str]] = {
     "passwords": ["time", "db", "user", "uid", "by", "ip", "event"],
     "jobs": ["time", "db", "job", "priority", "event"],
     "mails": ["time", "db", "mail_from", "mail_to", "subject", "message_id"],
+    "mail-errors": ["time", "db", "code", "mail_id", "error"],
     "workers": ["time", "db", "kind", "worker", "event", "duration"],
     "calls": ["time", "db", "endpoint", "status", "queries", "total", "query_time"],
 }

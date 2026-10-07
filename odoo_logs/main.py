@@ -146,7 +146,8 @@ def _scan(name: str, files: list[Path], keep: Callable[[dict[str, Any]], bool] |
     `keep` runs before the dump, so --verbose extracts what the command kept
     rather than everything the patterns matched.
     """
-    rows = parse.scan(name, files, _since, _until, _database, source=bool(_verbose))
+    reader = parse.scan_with_blocks if name in patterns.BLOCK_COMMANDS else parse.scan
+    rows = reader(name, files, _since, _until, _database, source=bool(_verbose))
     if keep:
         rows = [row for row in rows if keep(row)]
 
@@ -350,6 +351,22 @@ def mails(files: LOGS, limit: LIMIT = 0):
     matches — EHLO, MAIL FROM:<x> and the rest of the SMTP chatter don't.
     """
     _emit("mails", files, limit)
+
+
+@app.command("mail-errors")
+def mail_errors(files: LOGS, limit: LIMIT = 0):
+    """Outgoing emails the SMTP server refused, or Odoo failed to send.
+
+    `mails` only lists messages the server took, so a relay rejecting every
+    login makes it go quiet rather than report anything; this is the other
+    half. Two sources: the 4xx/5xx SMTP replies on the same `smtp_debug`
+    log `mails` reads (`code` set — a 535 is a rejected login), and
+    mail.mail's own `failed sending mail` line, logged at ERROR without any
+    debug handler (`mail_id` set). That second line covers failures during
+    the send only: on 12.0 a refused connection or login marks the batch
+    `exception` without logging it, so the SMTP replies are the only trace.
+    """
+    _emit("mail-errors", files, limit)
 
 
 @app.command()

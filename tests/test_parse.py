@@ -13,7 +13,8 @@ from odoo_logs import main, output, parse, patterns
 
 
 def rows(name: str, logs: list[Path], **kw) -> list[dict]:
-    return parse.scan(name, logs, **kw)
+    reader = parse.scan_with_blocks if name == "mail-errors" else parse.scan
+    return reader(name, logs, **kw)
 
 
 def field(rows: list[dict], key: str) -> list:
@@ -94,6 +95,44 @@ def test_mails_reads_the_smtp_debug_payload(logs):
     invoice = by_subject["Your invoice INV/2026/0042"]
     assert invoice["mail_from"] == '"no-reply" <notifications@odoo18.example.com>'
     assert invoice["mail_to"] == '"ACME Farm" <jdoe@example.com>'
+
+
+def test_mail_errors_reads_refused_smtp_replies(logs):
+    """A relay rejecting the login never gets as far as DATA, so `mails` has
+    nothing to show for it; the 4xx/5xx reply is the only trace. 3xx (a 334
+    asking for the next AUTH step) is the session working, and the raw
+    `reply: b'535 ...'` line before each retcode must not double the row."""
+    found = [row for row in rows("mail-errors", logs) if row["code"]]
+
+    assert field(found, "code") == ["535", "550"]
+    assert field(found, "error") == ["5.7.0 Invalid login or password", "5.7.1 Sender mismatch"]
+    assert set(field(found, "db")) == {"odoo12"}
+    assert set(field(found, "mail_id")) == {None}
+
+
+def test_mail_errors_reads_mail_mail_failures(logs):
+    """mail.mail logs a failed send at ERROR on its own, no debug handler
+    needed; entries are read as blocks so the error column carries the
+    real reason from the traceback, not just the exception's title."""
+    found = {row["mail_id"]: row for row in rows("mail-errors", logs) if row["mail_id"]}
+
+    # A refused sender: the head line titles the exception; the traceback
+    # under it carries the real refusal, which blocks-reading lifts in.
+    refused = found["156222"]
+    assert refused["code"] is None
+    assert "SMTPDataError: 550" in refused["error"]
+    assert "5.7.1 Sender mismatch" in refused["error"]
+
+    # A relay dropping the connection mid-send: no reply code at all, the
+    # ERROR entry (and its traceback) is the only trace.
+    dropped = found["63"]
+    assert "Connection unexpectedly closed" in dropped["error"]
+    assert dropped["code"] is None
+
+
+def test_mails_skips_refused_replies(logs):
+    """The other half of `mail-errors`: a refusal is not a sent mail."""
+    assert all(row["subject"] for row in rows("mails", logs))
 
 
 def test_mails_unfolds_a_subject_split_across_lines(logs):

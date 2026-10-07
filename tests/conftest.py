@@ -17,6 +17,10 @@ monitoring ping, an activity-assignment notification, an invoice with a PDF
 attachment) but every name, address and body string is fabricated — the
 corpus carried real customer and employee data.
 
+The `odoo12` SMTP refusals and `failed sending mail` entry are real 12.0
+lines with only the database name and file paths anonymised: they carry no
+address, and the French reason shows that part of the line is translated.
+
 Every command test consumes `logs`, so adding a command checks it against
 every delivery and adding a delivery checks it against every command.
 """
