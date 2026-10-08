@@ -28,6 +28,13 @@ def _cell(value: Any) -> str:
     return str(value)
 
 
+def _clip(cell: str, limit: int | None) -> str:
+    if limit is None or len(cell) <= limit:
+        return cell
+
+    return cell[: limit - 1] + "…"
+
+
 class Writer:
     def __init__(self, output_file: str | None, fmt: str):
         self.fmt = fmt
@@ -73,8 +80,13 @@ class Writer:
         data: list[dict[str, Any]],
         no_wrap: set[str] | None = None,
         empty_msg: str = "(no results)",
+        truncate: dict[str, int] | None = None,
     ):
-        """One shape in, every format out — so a new one can't miss a command."""
+        """One shape in, every format out — so a new one can't miss a command.
+
+        `truncate` caps a column's width in the text table only; json and csv
+        keep the full value.
+        """
         if self.fmt == "json":
             self.json([{c: row.get(c) for c in cols} for row in data])
             return
@@ -86,6 +98,9 @@ class Writer:
             writer.writerow(cols)
             writer.writerows(cells)
             return
+
+        limits = [(truncate or {}).get(c) for c in cols]
+        cells = [[_clip(cell, limit) for cell, limit in zip(row, limits, strict=True)] for row in cells]
 
         self.table(cols, cells, empty_msg, no_wrap)
 
