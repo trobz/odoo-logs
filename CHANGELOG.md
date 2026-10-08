@@ -2,6 +2,25 @@
 
 <!-- version list -->
 
+## v0.4.0 (2026-10-08)
+
+### Bug Fixes
+
+- Decode the 18.0 bad-query bytes repr before squashing
+  ([`f15eda7`](https://github.com/trobz/odoo-logs/commit/f15eda76215a3ee5e4f1ff7ed52b2859efff8c0c))
+
+- Group errors that differ only by embedded data
+  ([`1652ee4`](https://github.com/trobz/odoo-logs/commit/1652ee4ad44405cb98875251e62235e2b35a9e4f))
+
+- Group rejected INSERTs by table, not by the columns they set
+  ([`73a0ddb`](https://github.com/trobz/odoo-logs/commit/73a0ddb0f40cd721f5295e1cb0d9ab5eb53ad5cc))
+
+### Features
+
+- Truncate long errors in the errors table
+  ([`ff54b1f`](https://github.com/trobz/odoo-logs/commit/ff54b1f8c3310426acb00865303eedac10177b23))
+
+
 ## v0.3.0 (2026-10-07)
 
 ### Bug Fixes
