@@ -362,10 +362,14 @@ def _enrich(row: dict[str, Any]) -> dict[str, Any]:
     if row.get("code"):
         row["error"] = _unescape(row["error"])
 
+    # 20.0 workers log as themselves, so the process logging is the worker.
+    if "worker" in row and not row["worker"]:
+        row["worker"] = row["pid"]
+
     if "route" in row:
         row["route"], rpc = split_rpc(row["route"])
         row["model"], row["method"], row["endpoint"] = describe_route(row["route"])
-        # 19.0 names the model.method an RPC ran, which `/jsonrpc` hides.
+        # 19.0+ names the model.method an RPC ran, which `/jsonrpc` hides.
         # call_kw/call_button already name it in the path Odoo routed on.
         if rpc and row["model"] is None:
             row["model"], row["method"], row["endpoint"] = rpc["model"], rpc["method"], rpc[0]
