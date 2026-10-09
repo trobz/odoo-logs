@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.6.0 (2026-10-09)
+
+### Features
+
+- Read Odoo 20.0 logs
+  ([`cd2ec5d`](https://github.com/trobz/odoo-logs/commit/cd2ec5d1b3e20d7bce50fadba17d31d11d0a23b7))
+
+
 ## v0.5.0 (2026-10-09)
 
 ### Features
