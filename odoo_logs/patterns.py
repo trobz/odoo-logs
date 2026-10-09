@@ -5,8 +5,8 @@ Loggers and messages are renamed between Odoo versions (`base.ir.ir_cron` on
 `base.models.res_users` after), so each command matches an alternation rather
 than assuming a version.
 
-Every pattern here has a real log line behind it in `tests/sample.log`, drawn
-from 9.0 through 18.0 instances; `test_every_pattern_has_a_line` enforces it,
+Every pattern here has a real log line behind it in `tests/samples/`, one file
+per version from 9.0 through 18.0; `test_every_pattern_has_a_line` enforces it,
 so a wording that goes dead fails rather than quietly matching nothing.
 """
 
