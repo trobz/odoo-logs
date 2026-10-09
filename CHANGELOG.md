@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.5.0 (2026-10-09)
+
+### Features
+
+- Read Odoo 19.0 logs
+  ([`de6d64f`](https://github.com/trobz/odoo-logs/commit/de6d64fea161371104b9a2573aa89b35061adc2c))
+
+
 ## v0.4.0 (2026-10-08)
 
 ### Bug Fixes
