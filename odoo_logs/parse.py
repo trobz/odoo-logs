@@ -363,7 +363,12 @@ def _enrich(row: dict[str, Any]) -> dict[str, Any]:
         row["error"] = _unescape(row["error"])
 
     if "route" in row:
+        row["route"], rpc = split_rpc(row["route"])
         row["model"], row["method"], row["endpoint"] = describe_route(row["route"])
+        # 19.0 names the model.method an RPC ran, which `/jsonrpc` hides.
+        # call_kw/call_button already name it in the path Odoo routed on.
+        if rpc and row["model"] is None:
+            row["model"], row["method"], row["endpoint"] = rpc["model"], rpc["method"], rpc[0]
         row["total"] = None
 
         # Odoo appends `query_count query_time remaining_time` from 12.0 on;
@@ -375,6 +380,19 @@ def _enrich(row: dict[str, Any]) -> dict[str, Any]:
             row["total"] = round(row["query_time"] + row["other_time"], 3)
 
     return row
+
+
+def split_rpc(route: str) -> tuple[str, re.Match[str] | None]:
+    """Take 19.0's `#model.method` off an RPC route.
+
+    Only RPC routes carry one Odoo wrote; any other fragment came from the
+    client and stays on the route. With several `#`, the last is Odoo's.
+    """
+    path, hashed, _ = route.partition("#")
+    if not hashed or not patterns.RPC_ROUTE_RE.search(path.split("?")[0]):
+        return route, None
+
+    return path, patterns.RPC_FRAGMENT_RE.fullmatch(route.rpartition("#")[2])
 
 
 def describe_route(route: str) -> tuple[str | None, str | None, str]:
